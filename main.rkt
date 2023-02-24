@@ -4,6 +4,7 @@
          racket/list
          racket/string
          racket/match
+         racket/pretty
          threading
          json
          request/param
@@ -94,14 +95,17 @@
     [else acc]))
 
 (define (find-element tag root)
-  (let ([res (find-elements tag elem)])
+  (let ([res (find-elements tag root)])
     (if (not (empty? res))
         (car res)
         #f)))
 
 (define (find-article-root doc)
-  (let* ([body (find-element 'body doc)])
-    body))
+  (let* ([body (find-element 'body doc)]
+         [main (find-element 'main body)]
+         [article (find-element 'article body)]
+         [container (or article main body)])
+    container))
 
 (define (element-string elem [acc ""])
   (cond
@@ -117,13 +121,72 @@
 
 
 
-(define elem (page-document "https://shopify.engineering/scale-performance-testing"))
-(define main (car (find-elements 'main elem)))
+(define doc (page-document "https://shopify.engineering/scale-performance-testing"))
+(define body (find-element 'body doc))
 
-; (define title (car (find-elements 'title elem)))
+; (displayln (x:element-name (find-article-root doc)))
+
+; (define title (car (find-elements 'title doc)))
 ;
-; (for ([p (find-elements 'p main)])
-;   (displayln (element-string p)))
+
+(define p-worth (make-parameter 10))
+(define lista-worth (make-parameter 4))
+(define hs-worth (make-parameter 3))
+(define article-worth (make-parameter 11))
+(define main-worth (make-parameter 2))
+(define worths `((,p-worth (p))
+                 (,lista-worth (ul ol))
+                 (,hs-worth (h1 h2 h3 h4 h5 h6))
+                 (,main-worth (main))
+                 (,article-worth (article))))
+
+(define (calculate-element-score el)
+  (let/cc return
+    (unless (x:element? el)
+      (return 0))
+    (let ([el-tag (x:element-name el)])
+      (for ([item worths])
+        (let ([worth (car item)]
+              [tags (cadr item)])
+          (for ([tag tags])
+            (when (equal? tag el-tag)
+              (return (worth))))))
+      0)))
+
+(define (show el [level 0])
+  (let ([padding (string-join (make-list level " "))])
+    (cond
+      [(x:element? el)
+       (printf "~a~a (~a)\n" padding (x:element-name el) (calculate-element-score el))
+       (for ([ch (x:element-content el)])
+         (show ch (+ level 1)))]
+      [else
+       (printf "~a~a (0)\n" padding (object-name el))])))
+
+(struct element (tag score children) #:transparent)
+
+(define (transform el)
+  (cond
+    [(x:element? el)
+     (match-define (cons children-score-total children)
+       (foldl (lambda (el acc)
+                (let* ([t (transform el)]
+                       [s (element-score t)])
+                  (cons (+ s (car acc))
+                        (cons t (cdr acc)))))
+              (cons 0 null)
+              (x:element-content el)))
+     (element (x:element-name el)
+              (+ children-score-total (calculate-element-score el))
+              children)]
+    [else
+     (element (object-name el) 0 null)]))
+
+
+
+(pretty-display
+ (for/list ([el (x:element-content body)])
+   (transform el)))
 
 ; (displayln (element-string main))
 
