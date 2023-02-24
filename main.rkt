@@ -153,17 +153,21 @@
               (return (worth))))))
       0)))
 
-(define (show el [level 0])
-  (let ([padding (string-join (make-list level " "))])
+(define (show elem [level 0])
+  (let ([el (element-ref elem)]
+        [padding (string-join (make-list level " "))])
     (cond
       [(x:element? el)
-       (printf "~a~a (~a)\n" padding (x:element-name el) (calculate-element-score el))
-       (for ([ch (x:element-content el)])
-         (show ch (+ level 1)))]
+       (printf "~a~a (~a%) {\n" padding (element-tag elem) (element-percentage elem))
+       (for ([ch (element-children elem)])
+         (show ch (+ level 1)))
+       (printf "~a}\n" padding)]
       [else
-       (printf "~a~a (0)\n" padding (object-name el))])))
+       (printf "~a~a (0%)\n" padding (object-name el))])))
 
-(struct element (tag score children) #:transparent)
+(struct element (tag score percentage children ref)
+  #:transparent
+  #:mutable)
 
 (define (transform el)
   (cond
@@ -176,17 +180,25 @@
                         (cons t (cdr acc)))))
               (cons 0 null)
               (x:element-content el)))
+     (define parent-score
+       (+ children-score-total (calculate-element-score el)))
+     (unless (zero? parent-score)
+       (for ([el children])
+         (let ([percentage
+                (* (/ (element-score el) parent-score) 100.0)])
+           (set-element-percentage! el percentage))))
      (element (x:element-name el)
-              (+ children-score-total (calculate-element-score el))
-              children)]
+              parent-score
+              0
+              children
+              el)]
     [else
-     (element (object-name el) 0 null)]))
+     (element (object-name el) 0 0 null el)]))
 
 
 
-(pretty-display
- (for/list ([el (x:element-content body)])
-   (transform el)))
+; (pretty-display (transform body))
+(show (transform body))
 
 ; (displayln (element-string main))
 
