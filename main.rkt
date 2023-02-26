@@ -95,7 +95,7 @@
                 (let* ([scored (score-element el)]
                        [score (element-score scored)])
                   (cons (+ score (car acc))
-                        (cons scored (cdr acc)))))
+                        (append (cdr acc) (list scored)))))
               (cons 0 null)
               (x:element-content el)))
      (define parent-score
@@ -154,10 +154,15 @@
         [padding (string-join (make-list level " "))])
     (cond
       [(x:element? el)
-       (printf "~a~a (~a ~a%) {\n" padding (element-tag elem) (element-score elem) (element-percentage elem))
+       (printf "~a~a (~a ~a%) {\n" padding
+               (element-tag elem)
+               (element-score elem)
+               (element-percentage elem))
        (for ([ch (element-children elem)])
          (show ch (add1 level)))
        (printf "~a}\n" padding)]
+      [(x:pcdata? el)
+       (printf "~apcdata [~a]\n" padding (element-string el))]
       [else
        (printf "~a~a (0%)\n" padding (object-name el))])))
 
