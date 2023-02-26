@@ -87,12 +87,12 @@
           (string-append acc)
           (regexp-replace* #px"^\\s+|\\s+$" _ ""))]))
 
-(define (transform el)
+(define (score-element el)
   (cond
     [(x:element? el)
      (match-define (cons children-score-total children)
        (foldl (lambda (el acc)
-                (let* ([t (transform el)]
+                (let* ([t (score-element el)]
                        [s (element-score t)])
                   (cons (+ s (car acc))
                         (cons t (cdr acc)))))
@@ -133,8 +133,8 @@
 
 (define (find-article-root doc)
   (let* ([body (find-element 'body doc)]
-         [tran (transform body)])
-    (find-highest-score (transform body))))
+         [scored (score-element body)])
+    (find-highest-score scored)))
 
 (define (find-highest-score elem)
   (let* ([root
@@ -171,4 +171,4 @@
 (with-output-to-file "ignore.txt" #:exists 'replace
   (lambda ()
     (show (find-article-root doc))
-    (show (transform body))))
+    (show (score-element body))))
