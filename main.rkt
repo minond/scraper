@@ -102,10 +102,9 @@
 
 (define (find-article-root doc)
   (let* ([body (find-element 'body doc)]
-         [main (find-element 'main body)]
-         [article (find-element 'article body)]
-         [container (or article main body)])
-    container))
+         [tran (transform body)])
+    (find-highest-score (transform body))))
+
 
 (define (element-string elem [acc ""])
   (cond
@@ -209,11 +208,12 @@
      (element (object-name el) 0 0 null el)]))
 
 ; (pretty-display (transform body))
-(show (find-highest-score (transform body)))
+(show (find-article-root doc))
 
 (with-output-to-file "ignore.txt" #:exists 'replace
   (lambda ()
-    (show (find-highest-score (transform body)))))
+    (show (find-article-root doc))
+    (show (transform body))))
 
 
 ; (displayln (element-string main))
