@@ -158,12 +158,25 @@
         [padding (string-join (make-list level " "))])
     (cond
       [(x:element? el)
-       (printf "~a~a (~a%) {\n" padding (element-tag elem) (element-percentage elem))
+       (printf "~a~a (~a ~a%) {\n" padding (element-tag elem) (element-score elem) (element-percentage elem))
        (for ([ch (element-children elem)])
-         (show ch (+ level 1)))
+         (show ch (add1 level)))
        (printf "~a}\n" padding)]
       [else
        (printf "~a~a (0%)\n" padding (object-name el))])))
+
+(define (find-highest-score elem)
+  (let* ([root
+          (if (zero? (element-percentage elem))
+              (argmax element-score (element-children elem))
+              elem)]
+         [next
+          (and root
+               (findf (lambda (elem)
+                        (> (element-percentage elem) 80))
+                      (element-children root)))])
+    (or (and next (find-highest-score next))
+        (or root elem))))
 
 (struct element (tag score percentage children ref)
   #:transparent
@@ -195,10 +208,13 @@
     [else
      (element (object-name el) 0 0 null el)]))
 
-
-
 ; (pretty-display (transform body))
-(show (transform body))
+(show (find-highest-score (transform body)))
+
+(with-output-to-file "ignore.txt" #:exists 'replace
+  (lambda ()
+    (show (find-highest-score (transform body)))))
+
 
 ; (displayln (element-string main))
 
