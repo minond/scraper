@@ -92,10 +92,10 @@
     [(x:element? el)
      (match-define (cons children-score-total children)
        (foldl (lambda (el acc)
-                (let* ([t (score-element el)]
-                       [s (element-score t)])
-                  (cons (+ s (car acc))
-                        (cons t (cdr acc)))))
+                (let* ([scored (score-element el)]
+                       [score (element-score scored)])
+                  (cons (+ score (car acc))
+                        (cons scored (cdr acc)))))
               (cons 0 null)
               (x:element-content el)))
      (define parent-score
