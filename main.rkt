@@ -185,6 +185,7 @@
 (struct list-item (attributes content) #:transparent)
 (struct text (text) #:transparent)
 (struct image (attributes src alt) #:transparent)
+(struct video (attributes src) #:transparent)
 (struct link (attributes href content) #:transparent)
 (struct separator () #:transparent)
 
@@ -211,6 +212,10 @@
        (image (extract-attributes el)
               (or src data)
               alt))]
+    [(element 'video _ _ _ el)
+     (let* ([attributes (x:element-attributes el)]
+            [src (attr 'src attributes)])
+       (video (extract-attributes el) src))]
     [(element 'pcdata _ _ _ el)
      (let ([str (pcdata-string el)])
        (and str (text str)))]
