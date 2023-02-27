@@ -284,6 +284,40 @@
      (extract-content/list children)]
     [else #f]))
 
+(define (render-page elem-or-lst)
+  (format "<html>
+<head>
+<meta charset='utf-8'>
+</head>
+<body>
+~a
+</body>
+</html>" (render-content elem-or-lst 1)))
+
+(define (render-content elem-or-lst [level 0])
+  (if (list? elem-or-lst)
+      (string-append*
+       (for/list ([elem elem-or-lst])
+         (render-content elem level)))
+      (let ([padding (string-join (make-list level "  "))])
+        (match elem-or-lst
+          [(heading attributes lvl content)
+           (format "~a<h~a>~a</h~a>\n" padding lvl (render-content content (add1 level)) lvl)]
+          [(paragraph attributes content)
+           (format "~a<p>~a</p>\n" padding (render-content content (add1 level)))]
+          [(link attributes href content)
+           (format "<a href='~a'>~a</a>" href (render-content content (add1 level)))]
+          [(code attributes content)
+           (format "<code>~a</code>" (render-content content (add1 level)))]
+          [(pre attributes content)
+           (format "<pre>~a</pre>\n" (render-content content (add1 level)))]
+          [(image attributes src alt)
+           (format "<img src='~a' alt='~a' />" src alt)]
+          [(text text)
+           text]
+          [else
+           ""]))))
+
 ; (define doc (page-document "https://shopify.engineering/scale-performance-testing"))
 ; (define doc (page-document "https://www.quantamagazine.org/physicists-create-a-wormhole-using-a-quantum-computer-20221130/")) ; bad
 ; (define doc (page-document "https://bytebytego.com/courses/system-design-interview/scale-from-zero-to-millions-of-users")) ; bad, but bad for all extractors
@@ -309,3 +343,9 @@
   (lambda ()
     (pretty-display
      (extract-content (find-article-root doc)))))
+
+(with-output-to-file "ignore3.html" #:exists 'replace
+  (lambda ()
+    (display
+     (render-page
+      (extract-content (find-article-root doc))))))
