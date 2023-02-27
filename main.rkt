@@ -288,6 +288,10 @@
               6 (extract-content/list children))]
     [(element 'aside _ _ _ _)
      #f]
+    [(element 'header _ _ _ _)
+     #f]
+    [(element 'nav _ _ _ _)
+     #f]
     [(element _ children _ _ (x:element _ _ _ _ _))
      (extract-content/list children)]
     [else #f]))
