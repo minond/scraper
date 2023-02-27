@@ -141,7 +141,8 @@
 
 (define (find-article-root doc)
   (let* ([body (find-element 'body doc)]
-         [scored (score-element body)])
+         [main (find-element 'main doc)]
+         [scored (score-element (or main body))])
     (find-highest-score scored)))
 
 (define (find-highest-score elem)
