@@ -167,7 +167,7 @@
          (show ch (add1 level)))
        (printf "~a}\n" padding)]
       [(x:pcdata? el)
-       (printf "~apcdata [~a]\n" padding (x:pcdata-string el))]
+       (printf "~apcdata [~a]\n" padding (or (pcdata-string el) ""))]
       [else
        (printf "~a~a (0%)\n" padding (object-name el))])))
 
