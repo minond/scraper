@@ -12,7 +12,9 @@
          web-server/servlet-env
          xml/path
          (prefix-in h: html)
-         (prefix-in x: xml))
+         (prefix-in x: xml)
+         (prefix-in : scribble/html/xml)
+         (prefix-in : scribble/html/html))
 
 (define (/content req)
   (let* ([url (request-binding-assoc 'url req)]
@@ -291,38 +293,35 @@
     [else #f]))
 
 (define (render-page elem-or-lst)
-  (format "<html>
-<head>
-<meta charset='utf-8'>
-</head>
-<body>
-~a
-</body>
-</html>" (render-content elem-or-lst 1)))
+  (:xml->string
+   (:html
+    (:head
+     (:meta 'charset: 'utf-8))
+    (:body (render-content elem-or-lst)))))
 
-(define (render-content elem-or-lst [level 0])
+(define (render-content elem-or-lst)
   (if (list? elem-or-lst)
-      (string-append*
-       (for/list ([elem elem-or-lst])
-         (render-content elem level)))
-      (let ([padding (string-join (make-list level "  "))])
-        (match elem-or-lst
-          [(heading attributes lvl content)
-           (format "~a<h~a>~a</h~a>\n" padding lvl (render-content content (add1 level)) lvl)]
-          [(paragraph attributes content)
-           (format "~a<p>~a</p>\n" padding (render-content content (add1 level)))]
-          [(link attributes href content)
-           (format "<a href='~a'>~a</a>" href (render-content content (add1 level)))]
-          [(code attributes content)
-           (format "<code>~a</code>" (render-content content (add1 level)))]
-          [(pre attributes content)
-           (format "<pre>~a</pre>\n" (render-content content (add1 level)))]
-          [(image attributes src alt)
-           (format "<img src='~a' alt='~a' />" src alt)]
-          [(text text)
-           text]
-          [else
-           ""]))))
+      (for/list ([elem elem-or-lst])
+        (render-content elem))
+      (match elem-or-lst
+        [(heading attributes 1 content)
+         (:h1 (render-content content))]
+        [(paragraph attributes content)
+         (:p (render-content content))]
+        [(link attributes href content)
+         (:a 'href: href
+             (render-content content))]
+        [(code attributes content)
+         (:code (render-content content))]
+        [(pre attributes content)
+         (:pre (render-content content))]
+        [(image attributes src alt)
+         (:img 'src: src 'alt: alt)]
+        [(text text)
+         text]
+        [else
+         ; (printf "[error] unimplemented ~a\n" elem-or-lst)
+         ""])))
 
 ; (define doc (page-document "https://shopify.engineering/scale-performance-testing"))
 ; (define doc (page-document "https://www.quantamagazine.org/physicists-create-a-wormhole-using-a-quantum-computer-20221130/")) ; bad
