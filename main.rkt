@@ -76,8 +76,7 @@
     doc))
 
 (define (pcdata-string el)
-  (let ([str (~> (x:pcdata-string el)
-                 (regexp-replace* #px"^\\s+|\\s+$" _ ""))])
+  (let ([str (x:pcdata-string el)])
     (if (equal? str "")
         #f
         str)))
