@@ -41,7 +41,7 @@
 
 ; (start/servlet)
 
-(struct element (tag score percentage children ref)
+(struct element (tag children score percentage ref)
   #:transparent
   #:mutable)
 
@@ -87,6 +87,16 @@
           (string-append acc)
           (regexp-replace* #px"^\\s+|\\s+$" _ ""))]))
 
+(define (find-attr name lst)
+  (findf (lambda (attr)
+           (equal? name (x:attribute-name attr)))
+         lst))
+
+(define (read-attr attr [default (void)])
+  (if (x:attribute? attr)
+      (x:attribute-value attr)
+      default))
+
 (define (score-element el)
   (cond
     [(x:element? el)
@@ -106,12 +116,12 @@
                 (* (/ (element-score el) parent-score) 100.0)])
            (set-element-percentage! el percentage))))
      (element (x:element-name el)
+              children
               parent-score
               0
-              children
               el)]
     [else
-     (element (object-name el) 0 0 null el)]))
+     (element (object-name el) null 0 0 el)]))
 
 (define (find-elements tag root [acc null])
   (cond
@@ -166,14 +176,60 @@
       [else
        (printf "~a~a (0%)\n" padding (object-name el))])))
 
+(struct heading (level text) #:transparent)
+(struct paragraph (content) #:transparent)
+(struct ordered-list (items) #:transparent)
+(struct unordered-list (items) #:transparent)
+(struct list-item (content) #:transparent)
+(struct text (text) #:transparent)
+(struct image (src alt) #:transparent)
+(struct link (url) #:transparent)
+(struct separator () #:transparent)
 
+(define (extract-content elem)
+  (match elem
+    [(element 'div children _ _ _)
+     (flatten
+      (filter identity
+              (map extract-content children)))]
+    [(element 'ol children _ _ _)
+     (ordered-list
+      (flatten
+       (filter identity
+               (map extract-content children))))]
+    [(element 'ul children _ _ _)
+     (unordered-list
+      (filter identity
+              (map extract-content children)))]
+    [(element 'p _ _ _ el) (paragraph (text (element-string el)))]
+    [(element 'li _ _ _ el) (list-item (text (element-string el)))]
+    [(element 'h1 _ _ _ el) (heading 1 (text (element-string el)))]
+    [(element 'h2 _ _ _ el) (heading 2 (text (element-string el)))]
+    [(element 'h3 _ _ _ el) (heading 3 (text (element-string el)))]
+    [(element 'h4 _ _ _ el) (heading 4 (text (element-string el)))]
+    [(element 'h5 _ _ _ el) (heading 5 (text (element-string el)))]
+    [(element 'h6 _ _ _ el) (heading 6 (text (element-string el)))]
+    [(element 'hr _ _ _ _) (separator)]
+    [(element 'img _ _ _ (x:element _ _ _ attributes _))
+     (let* ([src (read-attr (find-attr 'data-src attributes))]
+            [alt (read-attr (find-attr 'alt attributes))])
+       (image src alt))]
+    [(element _ children _ _ (x:element _ _ _ _ _))
+     (flatten
+      (filter identity
+              (map extract-content children)))]
+    [else #f]))
 
 (define doc (page-document "https://shopify.engineering/scale-performance-testing"))
-(define body (find-element 'body doc))
-
-(show (find-article-root doc))
 
 (with-output-to-file "ignore.txt" #:exists 'replace
   (lambda ()
-    (show (find-article-root doc))
-    (show (score-element body))))
+    (show (find-article-root doc))))
+
+(void
+ (extract-content (find-article-root doc)))
+
+(with-output-to-file "ignore2.txt" #:exists 'replace
+  (lambda ()
+    (pretty-display
+     (extract-content (find-article-root doc)))))
