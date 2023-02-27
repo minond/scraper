@@ -173,6 +173,8 @@
 
 (struct heading (level content) #:transparent)
 (struct paragraph (content) #:transparent)
+(struct bold (content) #:transparent)
+(struct italic (content) #:transparent)
 (struct ordered-list (items) #:transparent)
 (struct unordered-list (items) #:transparent)
 (struct list-item (content) #:transparent)
@@ -204,6 +206,8 @@
     [(element 'ol children _ _ _) (ordered-list (extract-content/list children))]
     [(element 'ul children _ _ _) (unordered-list (extract-content/list children))]
     [(element 'p children _ _ _) (paragraph (extract-content/list children))]
+    [(element 'b children _ _ _) (bold (extract-content/list children))]
+    [(element 'i children _ _ _) (italic (extract-content/list children))]
     [(element 'li children _ _ _) (list-item (extract-content/list children))]
     [(element 'h1 children _ _ _) (heading 1 (extract-content/list children))]
     [(element 'h2 children _ _ _) (heading 2 (extract-content/list children))]
