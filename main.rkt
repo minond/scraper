@@ -139,10 +139,16 @@
         #f)))
 
 (define (find-article-root doc)
-  (let* ([body (find-element 'body doc)]
-         [main (find-element 'main doc)]
-         [scored (score-element (or main body))])
-    (find-highest-score scored)))
+  (find-highest-score/list
+   (filter identity
+           (list
+            (find-element 'body doc)
+            (find-element 'main doc)))))
+
+(define (find-highest-score/list lst)
+  (let* ([scored (map score-element lst)]
+         [highs (map find-highest-score scored)])
+    (argmax element-score highs)))
 
 (define (find-highest-score elem)
   (let* ([root
