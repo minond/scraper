@@ -299,20 +299,42 @@
      (:meta 'charset: 'utf-8))
     (:body (render-content elem-or-lst)))))
 
+(define headings-by-level
+  (hash
+   1 :h1
+   2 :h2
+   3 :h3
+   4 :h4
+   5 :h5
+   6 :h6))
+
 (define (render-content elem-or-lst)
   (if (list? elem-or-lst)
       (for/list ([elem elem-or-lst])
         (render-content elem))
       (match elem-or-lst
-        [(heading attributes 1 content)
-         (:h1 (render-content content))]
+        [(heading attributes level content)
+         ((hash-ref headings-by-level level)
+          (render-content content))]
         [(paragraph attributes content)
          (:p (render-content content))]
         [(link attributes href content)
          (:a 'href: href
              (render-content content))]
+        [(bold attributes content)
+         (:b (render-content content))]
+        [(italic attributes content)
+         (:i (render-content content))]
         [(code attributes content)
          (:code (render-content content))]
+        [(ordered-list attributes content)
+         (:ol (render-content content))]
+        [(unordered-list attributes content)
+         (:ul (render-content content))]
+        [(list-item attributes content)
+         (:li (render-content content))]
+        [(blockquote attributes content)
+         (:blockquote (render-content content))]
         [(pre attributes content)
          (:pre (render-content content))]
         [(image attributes src alt)
