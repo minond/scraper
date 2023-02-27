@@ -2,4 +2,4 @@
 
 (define collection "scraper")
 (define version "0.0")
-(define deps '("base"))
+(define deps '("base" "threading" "threading" "json"))
