@@ -87,7 +87,7 @@
            (equal? name (x:attribute-name attr)))
          lst))
 
-(define (read-attr attr [default (void)])
+(define (read-attr attr [default #f])
   (if (x:attribute? attr)
       (x:attribute-value attr)
       default))
@@ -191,9 +191,10 @@
 (define (extract-content elem)
   (match elem
     [(element 'img _ _ _ (x:element _ _ _ attributes _))
-     (let ([src (read-attr (find-attr 'data-src attributes))]
+     (let ([data (read-attr (find-attr 'data-src attributes))]
+           [src (read-attr (find-attr 'src attributes))]
            [alt (read-attr (find-attr 'alt attributes))])
-       (image src alt))]
+       (image (or src data) alt))]
     [(element 'pcdata _ _ _ el)
      (let ([str (pcdata-string el)])
        (and str (text str)))]
