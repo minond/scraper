@@ -15,7 +15,7 @@ jobs:
           - stable
           - current
         racket-variant:
-          - BC
+          # - BC
           - CS
         include:
           - racket-version: current
