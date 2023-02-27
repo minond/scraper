@@ -184,6 +184,7 @@
 (struct unordered-list (attributes items) #:transparent)
 (struct list-item (attributes content) #:transparent)
 (struct text (text) #:transparent)
+(struct entity (text) #:transparent)
 (struct image (attributes src alt) #:transparent)
 (struct video (attributes src) #:transparent)
 (struct link (attributes href content) #:transparent)
@@ -219,6 +220,9 @@
     [(element 'pcdata _ _ _ el)
      (let ([str (pcdata-string el)])
        (and str (text str)))]
+    [(element 'entity _ _ _ el)
+     (let ([val (x:entity-text el)])
+       (entity val))]
     [(element 'a children _ _ el)
      (let* ([attributes (x:element-attributes el)]
             [href (read-attr (find-attr 'href attributes))]
