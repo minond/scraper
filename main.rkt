@@ -177,6 +177,8 @@
 
 (struct heading (attributes level content) #:transparent)
 (struct paragraph (attributes content) #:transparent)
+(struct pre (attributes content) #:transparent)
+(struct code (attributes content) #:transparent)
 (struct bold (attributes content) #:transparent)
 (struct italic (attributes content) #:transparent)
 (struct blockquote (attributes content) #:transparent)
@@ -241,6 +243,12 @@
     [(element 'p children _ _ el)
      (paragraph (extract-attributes el)
                 (extract-content/list children))]
+    [(element 'pre children _ _ el)
+     (pre (extract-attributes el)
+          (extract-content/list children))]
+    [(element 'code children _ _ el)
+     (code (extract-attributes el)
+           (extract-content/list children))]
     [(element 'b children _ _ el)
      (bold (extract-attributes el)
            (extract-content/list children))]
