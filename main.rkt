@@ -267,6 +267,8 @@
     [(element 'h6 children _ _ el)
      (heading (extract-attributes el)
               6 (extract-content/list children))]
+    [(element 'aside _ _ _ _)
+     #f]
     [(element _ children _ _ (x:element _ _ _ _ _))
      (extract-content/list children)]
     [else #f]))
