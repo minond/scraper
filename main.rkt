@@ -92,6 +92,9 @@
       (x:attribute-value attr)
       default))
 
+(define (attr name lst)
+  (read-attr (find-attr name lst)))
+
 (define (score-element el)
   (cond
     [(x:element? el)
@@ -171,18 +174,26 @@
       [else
        (printf "~a~a (0%)\n" padding (object-name el))])))
 
-(struct heading (level content) #:transparent)
-(struct paragraph (content) #:transparent)
-(struct bold (content) #:transparent)
-(struct italic (content) #:transparent)
-(struct blockquote (content) #:transparent)
-(struct ordered-list (items) #:transparent)
-(struct unordered-list (items) #:transparent)
-(struct list-item (content) #:transparent)
+(struct heading (attributes level content) #:transparent)
+(struct paragraph (attributes content) #:transparent)
+(struct bold (attributes content) #:transparent)
+(struct italic (attributes content) #:transparent)
+(struct blockquote (attributes content) #:transparent)
+(struct ordered-list (attributes items) #:transparent)
+(struct unordered-list (attributes items) #:transparent)
+(struct list-item (attributes content) #:transparent)
 (struct text (text) #:transparent)
-(struct image (src alt) #:transparent)
-(struct link (href content) #:transparent)
+(struct image (attributes src alt) #:transparent)
+(struct link (attributes href content) #:transparent)
 (struct separator () #:transparent)
+
+(struct id (value) #:transparent)
+
+(define (extract-attributes el)
+  (let* ([attributes (x:element-attributes el)]
+         [id-value (attr 'id attributes)])
+    (filter identity
+            (list (and id-value (id id-value))))))
 
 (define (extract-content/list lst)
   (flatten
@@ -191,34 +202,67 @@
 
 (define (extract-content elem)
   (match elem
-    [(element 'img _ _ _ (x:element _ _ _ attributes _))
-     (let ([data (read-attr (find-attr 'data-src attributes))]
-           [src (read-attr (find-attr 'src attributes))]
-           [alt (read-attr (find-attr 'alt attributes))])
-       (image (or src data) alt))]
+    [(element 'img _ _ _ el)
+     (let* ([attributes (x:element-attributes el)]
+            [data (attr 'data-src attributes)]
+            [src (attr 'src attributes)]
+            [alt (attr 'alt attributes)])
+       (image (extract-attributes el)
+              (or src data)
+              alt))]
     [(element 'pcdata _ _ _ el)
      (let ([str (pcdata-string el)])
        (and str (text str)))]
-    [(element 'a children _ _ (x:element _ _ _ attributes _))
-     (let ([href (read-attr (find-attr 'href attributes))]
-           [content (extract-content/list children)])
-       (link href content))]
-    [(element 'hr _ _ _ _) (separator)]
-    [(element 'div children _ _ _) (extract-content/list children)]
-    [(element 'ol children _ _ _) (ordered-list (extract-content/list children))]
-    [(element 'ul children _ _ _) (unordered-list (extract-content/list children))]
-    [(element 'p children _ _ _) (paragraph (extract-content/list children))]
-    [(element 'b children _ _ _) (bold (extract-content/list children))]
-    [(element 'i children _ _ _) (italic (extract-content/list children))]
-    [(element 'blockquote children _ _ _) (blockquote (extract-content/list children))]
-    [(element 'li children _ _ _) (list-item (extract-content/list children))]
-    [(element 'h1 children _ _ _) (heading 1 (extract-content/list children))]
-    [(element 'h2 children _ _ _) (heading 2 (extract-content/list children))]
-    [(element 'h3 children _ _ _) (heading 3 (extract-content/list children))]
-    [(element 'h4 children _ _ _) (heading 4 (extract-content/list children))]
-    [(element 'h5 children _ _ _) (heading 5 (extract-content/list children))]
-    [(element 'h6 children _ _ _) (heading 6 (extract-content/list children))]
-    [(element _ children _ _ (x:element _ _ _ _ _)) (extract-content/list children)]
+    [(element 'a children _ _ el)
+     (let* ([attributes (x:element-attributes el)]
+            [href (read-attr (find-attr 'href attributes))]
+            [content (extract-content/list children)])
+       (link (extract-attributes el) href content))]
+    [(element 'hr _ _ _ _)
+     (separator)]
+    [(element 'div children _ _ _)
+     (extract-content/list children)]
+    [(element 'ol children _ _ el)
+     (ordered-list (extract-attributes el)
+                   (extract-content/list children))]
+    [(element 'ul children _ _ el)
+     (unordered-list (extract-attributes el)
+                     (extract-content/list children))]
+    [(element 'p children _ _ el)
+     (paragraph (extract-attributes el)
+                (extract-content/list children))]
+    [(element 'b children _ _ el)
+     (bold (extract-attributes el)
+           (extract-content/list children))]
+    [(element 'i children _ _ el)
+     (italic (extract-attributes el)
+             (extract-content/list children))]
+    [(element 'blockquote children _ _ el)
+     (blockquote (extract-attributes el)
+                 (extract-content/list children))]
+    [(element 'li children _ _ el)
+     (list-item (extract-attributes el)
+                (extract-content/list children))]
+    [(element 'h1 children _ _ el)
+     (heading (extract-attributes el)
+              1 (extract-content/list children))]
+    [(element 'h2 children _ _ el)
+     (heading (extract-attributes el)
+              2 (extract-content/list children))]
+    [(element 'h3 children _ _ el)
+     (heading (extract-attributes el)
+              3 (extract-content/list children))]
+    [(element 'h4 children _ _ el)
+     (heading (extract-attributes el)
+              4 (extract-content/list children))]
+    [(element 'h5 children _ _ el)
+     (heading (extract-attributes el)
+              5 (extract-content/list children))]
+    [(element 'h6 children _ _ el)
+     (heading (extract-attributes el)
+              6 (extract-content/list children))]
+    [(element _ children _ _ (x:element _ _ _ _ _))
+     (extract-content/list children)]
     [else #f]))
 
 (define doc (page-document "https://shopify.engineering/scale-performance-testing"))
