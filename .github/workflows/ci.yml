@@ -30,5 +30,12 @@ jobs:
           variant: ${{ matrix.racket-variant }}
           version: ${{ matrix.racket-version }}
 
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/racket
+            ~/.local/share/racket
+          key: ${{ runner.os }}-racket-${{ matrix.racket-version }}-${{ matrix.racket-variant }}
+
       - run: raco pkg install --no-docs --skip-installed --auto --name scraper
       - run: raco test -x -p scraper
