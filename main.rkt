@@ -239,8 +239,6 @@
        (link (extract-attributes el) href content))]
     [(element 'hr _ _ _ _)
      (separator)]
-    [(element 'div children _ _ _)
-     (extract-content/list children)]
     [(element 'ol children _ _ el)
      (ordered-list (extract-attributes el)
                    (extract-content/list children))]
@@ -286,14 +284,16 @@
     [(element 'h6 children _ _ el)
      (heading (extract-attributes el)
               6 (extract-content/list children))]
-    [(element 'aside _ _ _ _)
-     #f]
-    [(element 'header _ _ _ _)
-     #f]
-    [(element 'nav _ _ _ _)
-     #f]
-    [(element _ children _ _ (x:element _ _ _ _ _))
-     (extract-content/list children)]
+    [(element tag children _ _ (x:element _ _ _ attributes _))
+     (let ([class (attr 'class attributes #:default "")])
+       (if (or (member tag '(aside header nav))
+               (string-contains? class "nomobile")
+               (string-contains? class "sidebar")
+               (string-contains? class "noprint")
+               (string-contains? class "navbar")
+               (equal? "navigation" (attr 'role attributes #:default "")))
+           #f
+           (extract-content/list children)))]
     [else #f]))
 
 (define (render-page elem-or-lst)
