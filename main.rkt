@@ -367,6 +367,14 @@
          (render-element :sup attributes content)]
         [(pre attributes content)
          (render-element :pre attributes content)]
+        [(video attributes src)
+         (eval `(:element 'video
+                          ,@(attributes-arguments attributes)
+                          'src: ,src
+                          'autoplay: "autoplay"
+                          'muted: "true"
+                          'loop: "true"
+                          '(#f)))]
         [(image attributes src alt)
          (eval `(:img ,@(attributes-arguments attributes)
                       'src: ,src
