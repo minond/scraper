@@ -254,7 +254,7 @@
     [(element 'code children _ _ el)
      (code (extract-attributes el)
            (extract-content/list children))]
-    [(element 'b children _ _ el)
+    [(element (? (lambda~> (member '(b strong)))) children _ _ el)
      (bold (extract-attributes el)
            (extract-content/list children))]
     [(element 'i children _ _ el)
