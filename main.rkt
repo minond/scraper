@@ -189,6 +189,7 @@
 (struct bold (attributes content) #:transparent)
 (struct italic (attributes content) #:transparent)
 (struct blockquote (attributes content) #:transparent)
+(struct superscript (attributes content) #:transparent)
 (struct ordered-list (attributes items) #:transparent)
 (struct unordered-list (attributes items) #:transparent)
 (struct list-item (attributes content) #:transparent)
@@ -280,6 +281,9 @@
         [(element 'blockquote children _ _ el)
          (blockquote (extract-attributes el)
                      (extract-content/list children))]
+        [(element 'sup children _ _ el)
+         (superscript (extract-attributes el)
+                      (extract-content/list children))]
         [(element 'li children _ _ el)
          (list-item (extract-attributes el)
                     (extract-content/list children))]
@@ -358,6 +362,8 @@
          (render-element :li attributes content)]
         [(blockquote attributes content)
          (render-element :blockquote attributes content)]
+        [(superscript attributes content)
+         (render-element :sup attributes content)]
         [(pre attributes content)
          (render-element :pre attributes content)]
         [(image attributes src alt)
