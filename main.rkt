@@ -312,6 +312,14 @@
    5 :h5
    6 :h6))
 
+(define (attributes-arguments attributes)
+  (let ([id (findf id? attributes)])
+    (if id `('id: ,(id-value id)) empty)))
+
+(define (render-element tagf attributes content)
+  (eval `(,tagf ,@(attributes-arguments attributes)
+                ',(render-content content))))
+
 (define (render-content elem-or-lst)
   (if (list? elem-or-lst)
       (for/list ([elem elem-or-lst])
@@ -321,28 +329,31 @@
          ((hash-ref headings-by-level level)
           (render-content content))]
         [(paragraph attributes content)
-         (:p (render-content content))]
+         (render-element :p attributes content)]
         [(link attributes href content)
-         (:a 'href: href
-             (render-content content))]
+         (eval `(:a ,@(attributes-arguments attributes)
+                    'href: ,href
+                    ',(render-content content)))]
         [(bold attributes content)
-         (:b (render-content content))]
+         (render-element :b attributes content)]
         [(italic attributes content)
-         (:i (render-content content))]
+         (render-element :i attributes content)]
         [(code attributes content)
-         (:code (render-content content))]
+         (render-element :code attributes content)]
         [(ordered-list attributes content)
-         (:ol (render-content content))]
+         (render-element :ol attributes content)]
         [(unordered-list attributes content)
-         (:ul (render-content content))]
+         (render-element :ul attributes content)]
         [(list-item attributes content)
-         (:li (render-content content))]
+         (render-element :li attributes content)]
         [(blockquote attributes content)
-         (:blockquote (render-content content))]
+         (render-element :blockquote attributes content)]
         [(pre attributes content)
-         (:pre (render-content content))]
+         (render-element :pre attributes content)]
         [(image attributes src alt)
-         (:img 'src: src 'alt: alt)]
+         (eval `(:img ,@(attributes-arguments attributes)
+                      'src: ,src
+                      'alt: ,alt))]
         [(text text)
          text]
         [else
