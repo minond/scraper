@@ -315,8 +315,26 @@
   (:xml->string
    (:html
     (:head
-     (:meta 'charset: 'utf-8))
-    (:body (render-content elem-or-lst)))))
+     (:meta 'charset: 'utf-8)
+     (:style "
+      html,
+      body {
+        width: 100%;
+        margin: 0;
+      }
+      img,
+      video {
+        max-width: 75%;
+      }
+      main {
+        max-width: 90%;
+        margin: 0 auto;
+        padding: 1em;
+      }
+     "))
+    (:body
+      (:element 'main
+                (render-content elem-or-lst))))))
 
 (define headings-by-level
   (hash
