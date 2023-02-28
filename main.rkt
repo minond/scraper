@@ -213,8 +213,9 @@
      (string-contains? class "sidebar")
      (string-contains? class "noprint")
      (string-contains? class "navbar")
-     (string-contains? class "dpsp-networks-btns-share") ; WP
-     (string-contains? class "owl-carousel") ; WP
+     (string-contains? class "dpsp-networks-btns-share") ; WP plugin
+     (string-contains? class "owl-carousel") ; WP plugin
+     (string-contains? class "mw-editsection") ; Wikimedia edit links
      (equal? "navigation" (attr 'role attributes #:default "")))))
 
 (define (extract-attributes el)
