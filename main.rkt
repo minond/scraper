@@ -193,7 +193,7 @@
 (struct unordered-list (attributes items) #:transparent)
 (struct list-item (attributes content) #:transparent)
 (struct text (text) #:transparent)
-(struct entity (text) #:transparent)
+(struct entity (id) #:transparent)
 (struct image (attributes src alt) #:transparent)
 (struct video (attributes src) #:transparent)
 (struct link (attributes href content) #:transparent)
@@ -230,8 +230,8 @@
      (let ([str (pcdata-string el)])
        (and str (text str)))]
     [(element 'entity _ _ _ el)
-     (let ([val (x:entity-text el)])
-       (entity val))]
+     (let ([id (x:entity-text el)])
+       (entity id))]
     [(element 'a children _ _ el)
      (let* ([attributes (x:element-attributes el)]
             [href (read-attr (find-attr 'href attributes))]
@@ -354,6 +354,8 @@
          (eval `(:img ,@(attributes-arguments attributes)
                       'src: ,src
                       'alt: ,alt))]
+        [(entity id)
+         (:entity id)]
         [(text text)
          text]
         [else
