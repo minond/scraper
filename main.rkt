@@ -286,7 +286,7 @@
               6 (extract-content/list children))]
     [(element tag children _ _ (x:element _ _ _ attributes _))
      (let ([class (attr 'class attributes #:default "")])
-       (if (or (member tag '(aside header nav))
+       (if (or (member tag '(aside header nav script style))
                (string-contains? class "nomobile")
                (string-contains? class "sidebar")
                (string-contains? class "noprint")
