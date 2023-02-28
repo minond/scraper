@@ -201,6 +201,20 @@
 
 (struct id (value) #:transparent)
 
+(define ignorable-tags
+  '(aside header nav script style))
+(define (ignorable-element? elem)
+  (let* ([el (element-ref elem)]
+         [attributes (if (x:element? el) (x:element-attributes el) empty)]
+         [class (attr 'class attributes #:default "")])
+    (or
+     (string-contains? class "nomobile")
+     (string-contains? class "sidebar")
+     (string-contains? class "noprint")
+     (string-contains? class "navbar")
+     (string-contains? class "dpsp-networks-btns-share")
+     (equal? "navigation" (attr 'role attributes #:default "")))))
+
 (define (extract-attributes el)
   (let* ([attributes (x:element-attributes el)]
          [id-value (attr 'id attributes)])
@@ -213,88 +227,83 @@
            (map extract-content lst))))
 
 (define (extract-content elem)
-  (match elem
-    [(element 'img _ _ _ el)
-     (let* ([attributes (x:element-attributes el)]
-            [data (attr 'data-src attributes)]
-            [src (attr 'src attributes)]
-            [alt (attr 'alt attributes)])
-       (image (extract-attributes el)
-              (or src data)
-              alt))]
-    [(element 'video _ _ _ el)
-     (let* ([attributes (x:element-attributes el)]
-            [src (attr 'src attributes)])
-       (video (extract-attributes el) src))]
-    [(element 'pcdata _ _ _ el)
-     (let ([str (pcdata-string el)])
-       (and str (text str)))]
-    [(element 'entity _ _ _ el)
-     (let ([id (x:entity-text el)])
-       (entity id))]
-    [(element 'a children _ _ el)
-     (let* ([attributes (x:element-attributes el)]
-            [href (read-attr (find-attr 'href attributes))]
-            [content (extract-content/list children)])
-       (link (extract-attributes el) href content))]
-    [(element 'hr _ _ _ _)
-     (separator)]
-    [(element 'ol children _ _ el)
-     (ordered-list (extract-attributes el)
-                   (extract-content/list children))]
-    [(element 'ul children _ _ el)
-     (unordered-list (extract-attributes el)
-                     (extract-content/list children))]
-    [(element 'p children _ _ el)
-     (paragraph (extract-attributes el)
-                (extract-content/list children))]
-    [(element 'pre children _ _ el)
-     (pre (extract-attributes el)
-          (extract-content/list children))]
-    [(element 'code children _ _ el)
-     (code (extract-attributes el)
-           (extract-content/list children))]
-    [(element (? (lambda~> (member '(b strong)))) children _ _ el)
-     (bold (extract-attributes el)
-           (extract-content/list children))]
-    [(element 'i children _ _ el)
-     (italic (extract-attributes el)
-             (extract-content/list children))]
-    [(element 'blockquote children _ _ el)
-     (blockquote (extract-attributes el)
+  (if (ignorable-element? elem)
+      #f
+      (match elem
+        [(element 'img _ _ _ el)
+         (let* ([attributes (x:element-attributes el)]
+                [data (attr 'data-src attributes)]
+                [src (attr 'src attributes)]
+                [alt (attr 'alt attributes)])
+           (image (extract-attributes el)
+                  (or src data)
+                  alt))]
+        [(element 'video _ _ _ el)
+         (let* ([attributes (x:element-attributes el)]
+                [src (attr 'src attributes)])
+           (video (extract-attributes el) src))]
+        [(element 'pcdata _ _ _ el)
+         (let ([str (pcdata-string el)])
+           (and str (text str)))]
+        [(element 'entity _ _ _ el)
+         (let ([id (x:entity-text el)])
+           (entity id))]
+        [(element 'a children _ _ el)
+         (let* ([attributes (x:element-attributes el)]
+                [href (read-attr (find-attr 'href attributes))]
+                [content (extract-content/list children)])
+           (link (extract-attributes el) href content))]
+        [(element 'hr _ _ _ _)
+         (separator)]
+        [(element 'ol children _ _ el)
+         (ordered-list (extract-attributes el)
+                       (extract-content/list children))]
+        [(element 'ul children _ _ el)
+         (unordered-list (extract-attributes el)
+                         (extract-content/list children))]
+        [(element 'p children _ _ el)
+         (paragraph (extract-attributes el)
+                    (extract-content/list children))]
+        [(element 'pre children _ _ el)
+         (pre (extract-attributes el)
+              (extract-content/list children))]
+        [(element 'code children _ _ el)
+         (code (extract-attributes el)
+               (extract-content/list children))]
+        [(element (? (lambda~> (member '(b strong)))) children _ _ el)
+         (bold (extract-attributes el)
+               (extract-content/list children))]
+        [(element 'i children _ _ el)
+         (italic (extract-attributes el)
                  (extract-content/list children))]
-    [(element 'li children _ _ el)
-     (list-item (extract-attributes el)
-                (extract-content/list children))]
-    [(element 'h1 children _ _ el)
-     (heading (extract-attributes el)
-              1 (extract-content/list children))]
-    [(element 'h2 children _ _ el)
-     (heading (extract-attributes el)
-              2 (extract-content/list children))]
-    [(element 'h3 children _ _ el)
-     (heading (extract-attributes el)
-              3 (extract-content/list children))]
-    [(element 'h4 children _ _ el)
-     (heading (extract-attributes el)
-              4 (extract-content/list children))]
-    [(element 'h5 children _ _ el)
-     (heading (extract-attributes el)
-              5 (extract-content/list children))]
-    [(element 'h6 children _ _ el)
-     (heading (extract-attributes el)
-              6 (extract-content/list children))]
-    [(element tag children _ _ (x:element _ _ _ attributes _))
-     (let ([class (attr 'class attributes #:default "")])
-       (if (or (member tag '(aside header nav script style))
-               (string-contains? class "nomobile")
-               (string-contains? class "sidebar")
-               (string-contains? class "noprint")
-               (string-contains? class "navbar")
-               (equal? "navigation" (attr 'role attributes #:default "")))
-           #f
-           (extract-content/list children)))]
-    [else #f]))
+        [(element 'blockquote children _ _ el)
+         (blockquote (extract-attributes el)
+                     (extract-content/list children))]
+        [(element 'li children _ _ el)
+         (list-item (extract-attributes el)
+                    (extract-content/list children))]
+        [(element 'h1 children _ _ el)
+         (heading (extract-attributes el)
+                  1 (extract-content/list children))]
+        [(element 'h2 children _ _ el)
+         (heading (extract-attributes el)
+                  2 (extract-content/list children))]
+        [(element 'h3 children _ _ el)
+         (heading (extract-attributes el)
+                  3 (extract-content/list children))]
+        [(element 'h4 children _ _ el)
+         (heading (extract-attributes el)
+                  4 (extract-content/list children))]
+        [(element 'h5 children _ _ el)
+         (heading (extract-attributes el)
+                  5 (extract-content/list children))]
+        [(element 'h6 children _ _ el)
+         (heading (extract-attributes el)
+                  6 (extract-content/list children))]
+        [(element tag children _ _ (x:element _ _ _ _ _))
+         (and (not (member tag ignorable-tags))
+              (extract-content/list children))]
+        [else #f])))
 
 (define (render-page elem-or-lst)
   (:xml->string
