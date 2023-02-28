@@ -93,8 +93,8 @@
       (x:attribute-value attr)
       default))
 
-(define (attr name lst)
-  (read-attr (find-attr name lst)))
+(define (attr name lst #:default [default #f])
+  (read-attr (find-attr name lst) default))
 
 (define (score-element el)
   (cond
