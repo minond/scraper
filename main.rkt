@@ -424,15 +424,17 @@
          ; (printf "[error] unimplemented ~a\n" elem-or-lst)
          ""])))
 
-; (define doc (page-document "https://shopify.engineering/scale-performance-testing"))
-; (define doc (page-document "https://www.quantamagazine.org/physicists-create-a-wormhole-using-a-quantum-computer-20221130/")) ; bad
-; (define doc (page-document "https://bytebytego.com/courses/system-design-interview/scale-from-zero-to-millions-of-users")) ; bad, but bad for all extractors
-; (define doc (page-document "https://accu.org/journals/overload/30/172/teodorescu/")) ; mostly works but is missing first image attributes and element ids for document href links, maybe tables as well
-; (define doc (page-document "https://en.wikipedia.org/wiki/Cardinal_virtues")) ; missing bold, italic elements, should ignore "sidebar" table, need to fix relative links
-; (define doc (page-document "https://solarianprogrammer.com/2018/01/12/writing-minimal-x86-64-jit-compiler-cpp-part-2/")) ; mostly working, needs pre/code elements and should also respect whitespace
-; (define doc (page-document "https://www.resilience.org/stories/2020-06-08/collapse-of-civilisation-is-the-most-likely-outcome-top-climate-scientists/")) ; including shared buttons at top of page, look into removing, need blockquote elements
-(define doc (page-document "https://minond.xyz/posts/adt-type-meaning"))
-; (define doc (page-document "https://www.evanmiller.org/statistical-formulas-for-programmers.html"))
+; (define url (string->url "https://shopify.engineering/scale-performance-testing"))
+; (define url (string->url "https://www.quantamagazine.org/physicists-create-a-wormhole-using-a-quantum-computer-20221130/")) ; bad, displaying javascript code
+; (define url (string->url "https://bytebytego.com/courses/system-design-interview/scale-from-zero-to-millions-of-users")) ; bad, but bad for all extractors
+; (define url (string->url "https://accu.org/journals/overload/30/172/teodorescu/")) ; mostly works but is missing first image attributes and element ids for document href links, maybe tables as well
+; (define url (string->url "https://en.wikipedia.org/wiki/Cardinal_virtues")) ; missing bold, italic elements, should ignore "sidebar" table, need to fix relative links, odd thing happening with references list items going outside of the ol element
+; (define url (string->url "https://solarianprogrammer.com/2018/01/12/writing-minimal-x86-64-jit-compiler-cpp-part-2/")) ; mostly working, needs pre/code elements and should also respect whitespace
+; (define url (string->url "https://www.resilience.org/stories/2020-06-08/collapse-of-civilisation-is-the-most-likely-outcome-top-climate-scientists/")) ; including shared buttons at top of page, look into removing, need blockquote elements
+; (define url (string->url "https://minond.xyz/posts/adt-type-meaning"))
+(define url (string->url "https://www.evanmiller.org/statistical-formulas-for-programmers.html"))
+
+(define doc (page-document url))
 
 (with-output-to-file "ignore.txt" #:exists 'replace
   (lambda ()
@@ -443,15 +445,15 @@
     ))
 
 (void
- (extract-content (find-article-root doc)))
+ (extract-content (find-article-root doc) url))
 
 (with-output-to-file "ignore2.txt" #:exists 'replace
   (lambda ()
     (pretty-display
-     (extract-content (find-article-root doc)))))
+     (extract-content (find-article-root doc) url))))
 
 (with-output-to-file "ignore3.html" #:exists 'replace
   (lambda ()
     (display
      (render-page
-      (extract-content (find-article-root doc))))))
+      (extract-content (find-article-root doc) url)))))
