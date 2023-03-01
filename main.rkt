@@ -72,7 +72,7 @@
       0)))
 
 (define (page-document url)
-  (let* ([res (get (string->url url))]
+  (let* ([res (get url)]
          [bod (http-response-body res)]
          [doc (h:read-html-as-xml (open-input-string bod))])
     doc))
@@ -218,18 +218,22 @@
      (string-contains? class "mw-editsection") ; Wikimedia edit links
      (equal? "navigation" (attr 'role attributes #:default "")))))
 
+(define (absolute-url base-url relative-url)
+  (url->string (combine-url/relative base-url relative-url)))
+
 (define (extract-attributes el)
   (let* ([attributes (x:element-attributes el)]
          [id-value (attr 'id attributes)])
     (filter identity
             (list (and id-value (id id-value))))))
 
-(define (extract-content/list lst)
+(define (extract-content/list lst base-url)
   (flatten
    (filter identity
-           (map extract-content lst))))
+           (map (lambda~>
+                  (extract-content base-url)) lst))))
 
-(define (extract-content elem)
+(define (extract-content elem base-url)
   (if (ignorable-element? elem)
       #f
       (match elem
@@ -239,12 +243,13 @@
                 [src (attr 'src attributes)]
                 [alt (attr 'alt attributes)])
            (image (extract-attributes el)
-                  (or src data)
+                  (or (and src (absolute-url base-url src)) data)
                   alt))]
         [(element 'video _ _ _ el)
          (let* ([attributes (x:element-attributes el)]
                 [src (attr 'src attributes)])
-           (video (extract-attributes el) src))]
+           (video (extract-attributes el)
+                  (and src (absolute-url base-url src))))]
         [(element 'pcdata _ _ _ el)
          (let ([str (pcdata-string el)])
            (and str (text str)))]
@@ -254,61 +259,63 @@
         [(element 'a children _ _ el)
          (let* ([attributes (x:element-attributes el)]
                 [href (read-attr (find-attr 'href attributes))]
-                [content (extract-content/list children)])
-           (link (extract-attributes el) href content))]
+                [content (extract-content/list children base-url)])
+           (link (extract-attributes el)
+                 (and href (absolute-url base-url href))
+                 content))]
         [(element 'hr _ _ _ _)
          (separator)]
         [(element 'ol children _ _ el)
          (ordered-list (extract-attributes el)
-                       (extract-content/list children))]
+                       (extract-content/list children base-url))]
         [(element 'ul children _ _ el)
          (unordered-list (extract-attributes el)
-                         (extract-content/list children))]
+                         (extract-content/list children base-url))]
         [(element 'p children _ _ el)
          (paragraph (extract-attributes el)
-                    (extract-content/list children))]
+                    (extract-content/list children base-url))]
         [(element 'pre children _ _ el)
          (pre (extract-attributes el)
-              (extract-content/list children))]
+              (extract-content/list children base-url))]
         [(element 'code children _ _ el)
          (code (extract-attributes el)
-               (extract-content/list children))]
+               (extract-content/list children base-url))]
         [(element (? (lambda~> (member '(b strong)))) children _ _ el)
          (bold (extract-attributes el)
-               (extract-content/list children))]
+               (extract-content/list children base-url))]
         [(element 'i children _ _ el)
          (italic (extract-attributes el)
-                 (extract-content/list children))]
+                 (extract-content/list children base-url))]
         [(element 'blockquote children _ _ el)
          (blockquote (extract-attributes el)
-                     (extract-content/list children))]
+                     (extract-content/list children base-url))]
         [(element 'sup children _ _ el)
          (superscript (extract-attributes el)
-                      (extract-content/list children))]
+                      (extract-content/list children base-url))]
         [(element 'li children _ _ el)
          (list-item (extract-attributes el)
-                    (extract-content/list children))]
+                    (extract-content/list children base-url))]
         [(element 'h1 children _ _ el)
          (heading (extract-attributes el)
-                  1 (extract-content/list children))]
+                  1 (extract-content/list children base-url))]
         [(element 'h2 children _ _ el)
          (heading (extract-attributes el)
-                  2 (extract-content/list children))]
+                  2 (extract-content/list children base-url))]
         [(element 'h3 children _ _ el)
          (heading (extract-attributes el)
-                  3 (extract-content/list children))]
+                  3 (extract-content/list children base-url))]
         [(element 'h4 children _ _ el)
          (heading (extract-attributes el)
-                  4 (extract-content/list children))]
+                  4 (extract-content/list children base-url))]
         [(element 'h5 children _ _ el)
          (heading (extract-attributes el)
-                  5 (extract-content/list children))]
+                  5 (extract-content/list children base-url))]
         [(element 'h6 children _ _ el)
          (heading (extract-attributes el)
-                  6 (extract-content/list children))]
+                  6 (extract-content/list children base-url))]
         [(element tag children _ _ (x:element _ _ _ _ _))
          (and (not (member tag ignorable-tags))
-              (extract-content/list children))]
+              (extract-content/list children base-url))]
         [else #f])))
 
 (define (render-page elem-or-lst)
