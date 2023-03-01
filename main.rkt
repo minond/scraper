@@ -402,6 +402,8 @@
          (render-element :sup attributes content)]
         [(pre attributes content)
          (render-element :pre attributes content)]
+        [(separator)
+         (:hr)]
         [(video attributes src)
          (eval `(:element 'video
                           ,@(attributes-arguments attributes)
