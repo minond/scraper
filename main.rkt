@@ -216,10 +216,14 @@
      (string-contains? class "dpsp-networks-btns-share") ; WP plugin
      (string-contains? class "owl-carousel") ; WP plugin
      (string-contains? class "mw-editsection") ; Wikimedia edit links
+     (string-contains? class "mw-indicators") ; Wikimedia
+     (string-contains? class "navigation-not-searchable") ; Wikimedia
      (equal? "navigation" (attr 'role attributes #:default "")))))
 
 (define (absolute-url base-url relative-url)
-  (url->string (combine-url/relative base-url relative-url)))
+  (if (equal? #\# (string-ref relative-url 0))
+      relative-url
+      (url->string (combine-url/relative base-url relative-url))))
 
 (define (extract-attributes el)
   (let* ([attributes (x:element-attributes el)]
