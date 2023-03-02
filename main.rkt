@@ -231,6 +231,25 @@
     (filter identity
             (list (and id-value (id id-value))))))
 
+(define (element-string el)
+  (~> (element-string-aux el)
+      (regexp-replace* #px"^\\s+|\\s+$" _ "")
+      (regexp-replace* #px"\\s+" _ " ")))
+
+(define (element-string-aux el [acc ""])
+  (cond
+    [(x:pcdata? el)
+     (string-append acc (x:pcdata-string el))]
+    [(x:entity? el)
+     (let ([value (x:entity-text el)])
+       (if (integer? value)
+           (string (integer->char value))
+           ""))]
+    [(x:element? el)
+     (let* ([content (x:element-content el)]
+            [strings (map element-string-aux content)])
+       (string-append* (cons acc strings)))]))
+
 (define (element-content/list lst base-url)
   (flatten
    (filter identity
@@ -324,6 +343,57 @@
 
 (define (extract-content doc url)
   (element-content (find-article-root doc) url))
+
+(struct metadata (title description charset site-logos page-logos)
+  #:transparent
+  #:mutable)
+
+(struct logo (src width height)
+  #:transparent
+  #:mutable)
+
+(define (extract-metadata doc base-url)
+  (let* ([metatags (find-elements 'meta doc)]
+         [linktags (find-elements 'link doc)]
+         [titletag (find-element 'title doc)]
+         [attrgroups (map x:element-attributes (append metatags linktags))]
+         [meta (metadata (and titletag (element-string titletag))
+                         #f #f empty empty)])
+    (for* ([attributes attrgroups])
+      (match (list (or (attr 'name attributes) (attr 'property attributes))
+                   (attr 'content attributes)
+                   (attr 'rel attributes)
+                   (attr 'href attributes)
+                   (attr 'charset attributes))
+        [(list _ _ _ _ (? string? charset))
+         (set-metadata-charset! meta charset)]
+        [(list "og:image" url _ _ _)
+         (set-metadata-page-logos!
+          meta
+          (append (metadata-page-logos meta)
+                  (list (logo (absolute-url base-url url) #f #f))))]
+        [(list "og:image:width" content _ _ _)
+         (let ([logo (last (metadata-page-logos meta))])
+           (when logo
+             (set-logo-width! logo content)))]
+        [(list "og:image:height" content _ _ _)
+         (let ([logo (last (metadata-page-logos meta))])
+           (when logo
+             (set-logo-height! logo content)))]
+        [(list "og:title" content _ _ _)
+         (set-metadata-title! meta content)]
+        [(list "og:description" content _ _ _)
+         (set-metadata-description! meta content)]
+        [(list "description" content _ _ _)
+         (set-metadata-description! meta content)]
+        [(list _ _ (? (lambda~> (member '("icon" "apple-touch-icon")))) url _)
+         (set-metadata-site-logos!
+          meta
+          (append (metadata-site-logos meta)
+                  (list (logo (absolute-url base-url url) #f #f))))]
+        [_
+         (void)]))
+    meta))
 
 (define (render-page elem-or-lst)
   (:xml->string
@@ -434,14 +504,23 @@
 ; (define url (string->url "https://shopify.engineering/scale-performance-testing"))
 ; (define url (string->url "https://www.quantamagazine.org/physicists-create-a-wormhole-using-a-quantum-computer-20221130/")) ; bad, displaying javascript code
 ; (define url (string->url "https://bytebytego.com/courses/system-design-interview/scale-from-zero-to-millions-of-users")) ; bad, but bad for all extractors
-; (define url (string->url "https://accu.org/journals/overload/30/172/teodorescu/")) ; mostly works but is missing first image attributes and element ids for document href links, maybe tables as well
+(define url (string->url "https://accu.org/journals/overload/30/172/teodorescu/")) ; mostly works but is missing first image attributes and element ids for document href links, maybe tables as well
 ; (define url (string->url "https://en.wikipedia.org/wiki/Cardinal_virtues")) ; missing bold, italic elements, should ignore "sidebar" table, need to fix relative links, odd thing happening with references list items going outside of the ol element
+; (define url (string->url "https://en.wikipedia.org/wiki/Mouse")) ; References list issue coming up here as well, external links are missing as well
 ; (define url (string->url "https://solarianprogrammer.com/2018/01/12/writing-minimal-x86-64-jit-compiler-cpp-part-2/")) ; mostly working, needs pre/code elements and should also respect whitespace
 ; (define url (string->url "https://www.resilience.org/stories/2020-06-08/collapse-of-civilisation-is-the-most-likely-outcome-top-climate-scientists/")) ; including shared buttons at top of page, look into removing, need blockquote elements
 ; (define url (string->url "https://minond.xyz/posts/adt-type-meaning"))
-(define url (string->url "https://www.evanmiller.org/statistical-formulas-for-programmers.html"))
+; (define url (string->url "https://2ality.com/2022/12/set-methods.html"))
+; (define url (string->url "https://www.evanmiller.org/statistical-formulas-for-programmers.html"))
 
 (define doc (download url))
+
+(pretty-display
+ (extract-metadata doc url))
+
+(with-output-to-file "ignore0.txt" #:exists 'replace
+  (lambda ()
+    (pretty-display doc)))
 
 (with-output-to-file "ignore.txt" #:exists 'replace
   (lambda ()
