@@ -227,13 +227,13 @@
     (filter identity
             (list (and id-value (id id-value))))))
 
-(define (extract-content/list lst base-url)
+(define (element-content/list lst base-url)
   (flatten
    (filter identity
            (map (lambda~>
-                  (extract-content base-url)) lst))))
+                 (element-content base-url)) lst))))
 
-(define (extract-content elem base-url)
+(define (element-content elem base-url)
   (if (ignorable-element? elem)
       #f
       (match elem
@@ -259,7 +259,7 @@
         [(element 'a children _ _ el)
          (let* ([attributes (x:element-attributes el)]
                 [href (read-attr (find-attr 'href attributes))]
-                [content (extract-content/list children base-url)])
+                [content (element-content/list children base-url)])
            (link (extract-attributes el)
                  (and href (absolute-url base-url href))
                  content))]
@@ -267,56 +267,59 @@
          (separator)]
         [(element 'ol children _ _ el)
          (ordered-list (extract-attributes el)
-                       (extract-content/list children base-url))]
+                       (element-content/list children base-url))]
         [(element 'ul children _ _ el)
          (unordered-list (extract-attributes el)
-                         (extract-content/list children base-url))]
+                         (element-content/list children base-url))]
         [(element 'p children _ _ el)
          (paragraph (extract-attributes el)
-                    (extract-content/list children base-url))]
+                    (element-content/list children base-url))]
         [(element 'pre children _ _ el)
          (pre (extract-attributes el)
-              (extract-content/list children base-url))]
+              (element-content/list children base-url))]
         [(element 'code children _ _ el)
          (code (extract-attributes el)
-               (extract-content/list children base-url))]
+               (element-content/list children base-url))]
         [(element (? (lambda~> (member '(b strong)))) children _ _ el)
          (bold (extract-attributes el)
-               (extract-content/list children base-url))]
+               (element-content/list children base-url))]
         [(element 'i children _ _ el)
          (italic (extract-attributes el)
-                 (extract-content/list children base-url))]
+                 (element-content/list children base-url))]
         [(element 'blockquote children _ _ el)
          (blockquote (extract-attributes el)
-                     (extract-content/list children base-url))]
+                     (element-content/list children base-url))]
         [(element 'sup children _ _ el)
          (superscript (extract-attributes el)
-                      (extract-content/list children base-url))]
+                      (element-content/list children base-url))]
         [(element 'li children _ _ el)
          (list-item (extract-attributes el)
-                    (extract-content/list children base-url))]
+                    (element-content/list children base-url))]
         [(element 'h1 children _ _ el)
          (heading (extract-attributes el)
-                  1 (extract-content/list children base-url))]
+                  1 (element-content/list children base-url))]
         [(element 'h2 children _ _ el)
          (heading (extract-attributes el)
-                  2 (extract-content/list children base-url))]
+                  2 (element-content/list children base-url))]
         [(element 'h3 children _ _ el)
          (heading (extract-attributes el)
-                  3 (extract-content/list children base-url))]
+                  3 (element-content/list children base-url))]
         [(element 'h4 children _ _ el)
          (heading (extract-attributes el)
-                  4 (extract-content/list children base-url))]
+                  4 (element-content/list children base-url))]
         [(element 'h5 children _ _ el)
          (heading (extract-attributes el)
-                  5 (extract-content/list children base-url))]
+                  5 (element-content/list children base-url))]
         [(element 'h6 children _ _ el)
          (heading (extract-attributes el)
-                  6 (extract-content/list children base-url))]
+                  6 (element-content/list children base-url))]
         [(element tag children _ _ (x:element _ _ _ _ _))
          (and (not (member tag ignorable-tags))
-              (extract-content/list children base-url))]
+              (element-content/list children base-url))]
         [else #f])))
+
+(define (extract-content doc url)
+  (element-content (find-article-root doc) url))
 
 (define (render-page elem-or-lst)
   (:xml->string
@@ -324,8 +327,8 @@
     (:head
      (:meta 'charset: 'utf-8)
      (:script
-       'type: "text/javascript"
-       'src: "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS-MML_HTMLorMML")
+      'type: "text/javascript"
+      'src: "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS-MML_HTMLorMML")
      (:script "
        MathJax.Hub.Config({
          TeX: { equationNumbers: { autoNumber: 'AMS' } },
@@ -350,8 +353,8 @@
       }
      "))
     (:body
-      (:element 'main
-                (render-content elem-or-lst))))))
+     (:element 'main
+               (render-content elem-or-lst))))))
 
 (define headings-by-level
   (hash
@@ -445,15 +448,15 @@
     ))
 
 (void
- (extract-content (find-article-root doc) url))
+ (extract-content doc url))
 
 (with-output-to-file "ignore2.txt" #:exists 'replace
   (lambda ()
     (pretty-display
-     (extract-content (find-article-root doc) url))))
+     (extract-content doc url))))
 
 (with-output-to-file "ignore3.html" #:exists 'replace
   (lambda ()
     (display
      (render-page
-      (extract-content (find-article-root doc) url)))))
+      (extract-content doc url)))))
