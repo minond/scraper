@@ -18,7 +18,7 @@
 
 (define (/content req)
   (let* ([url (request-binding-assoc 'url req)]
-         [doc (page-document url)])
+         [doc (download url)])
     (response/output
      #:code 200
      #:headers (list
@@ -71,7 +71,7 @@
               (return (worth))))))
       0)))
 
-(define (page-document url)
+(define (download url)
   (let* ([res (get url)]
          [bod (http-response-body res)]
          [doc (h:read-html-as-xml (open-input-string bod))])
@@ -437,7 +437,7 @@
 ; (define url (string->url "https://minond.xyz/posts/adt-type-meaning"))
 (define url (string->url "https://www.evanmiller.org/statistical-formulas-for-programmers.html"))
 
-(define doc (page-document url))
+(define doc (download url))
 
 (with-output-to-file "ignore.txt" #:exists 'replace
   (lambda ()
