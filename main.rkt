@@ -214,6 +214,7 @@
      (string-contains? id "sidebar") ; Lambda the Ultimate
      (string-contains? id "footer") ; Lambda the Ultimate
      (string-contains? class "breadcrumb") ; Lambda the Ultimate
+     (string-contains? class "mailing-list")
      (string-contains? class "nomobile")
      (string-contains? class "sidebar")
      (string-contains? class "noprint")
@@ -577,7 +578,9 @@
 ; (define url (string->url "https://eli.thegreenplace.net/2023/using-goatcounter-for-blog-analytics/")) ; Looks good
 ; (define url (string->url "https://blog.regehr.org/archives/1653")) ; Needs br's
 ; (define url (string->url "https://esoteric.codes/blog/open-and-shut")) ; Needs to get embeded video
-(define url (string->url "http://lambda-the-ultimate.org/node/5629"))
+; (define url (string->url "http://lambda-the-ultimate.org/node/5629")) ; Looks good
+; (define url (string->url "https://martin.kleppmann.com/2021/04/14/goodbye-gpl.html")) ; Looks good
+(define url (string->url "https://twitter.com/lexi_lambda/status/1295426437583982592")) ; Not working, JS rendered
 
 (define doc (download url))
 
