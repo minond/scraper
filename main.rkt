@@ -351,11 +351,11 @@
   #:transparent
   #:mutable)
 
-(struct metadata:image (kind url width height)
+(struct metadata:image (url type width height)
   #:transparent
   #:mutable)
 
-(struct metadata:video (url width height)
+(struct metadata:video (url type width height)
   #:transparent
   #:mutable)
 
@@ -374,16 +374,16 @@
                    (attr 'charset attributes))
         [(list _ _ _ _ (? string? charset))
          (set-metadata-charset! meta charset)]
-        [(list _ _ (? (lambda~> (member '("icon" "apple-touch-icon"))) kind) url _)
+        [(list _ _ (? (lambda~> (member '("icon" "apple-touch-icon"))) type) url _)
          (set-metadata-images!
           meta
           (append (metadata-images meta)
-                  (list (metadata:image kind (absolute-url base-url url) #f #f))))]
+                  (list (metadata:image (absolute-url base-url url) type #f #f))))]
         [(list "og:image" url _ _ _)
          (set-metadata-images!
           meta
           (append (metadata-images meta)
-                  (list (metadata:image "image" (absolute-url base-url url) #f #f))))]
+                  (list (metadata:image (absolute-url base-url url) "image" #f #f))))]
         [(list "og:image:width" content _ _ _)
          (let ([image (last (metadata-images meta))])
            (when image
@@ -392,6 +392,23 @@
          (let ([image (last (metadata-images meta))])
            (when image
              (set-metadata:image-height! image content)))]
+        [(list "og:video:url" url _ _ _)
+         (set-metadata-videos!
+          meta
+          (append (metadata-videos meta)
+                  (list (metadata:video (absolute-url base-url url) #f #f #f))))]
+        [(list "og:video:width" content _ _ _)
+         (let ([video (last (metadata-videos meta))])
+           (when video
+             (set-metadata:video-width! video content)))]
+        [(list "og:video:height" content _ _ _)
+         (let ([video (last (metadata-videos meta))])
+           (when video
+             (set-metadata:video-height! video content)))]
+        [(list "og:video:type" content _ _ _)
+         (let ([video (last (metadata-videos meta))])
+           (when video
+             (set-metadata:video-type! video content)))]
         [(list "og:title" content _ _ _)
          (set-metadata-title! meta content)]
         [(list "og:description" content _ _ _)
