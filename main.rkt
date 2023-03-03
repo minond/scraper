@@ -347,7 +347,7 @@
 ;; TODO original-url
 ;;      cononical-url
 ;;      keywords
-(struct metadata (title description charset images videos)
+(struct metadata (url canonical-url type title description charset images videos)
   #:transparent
   #:mutable)
 
@@ -364,7 +364,8 @@
          [linktags (find-elements 'link doc)]
          [titletag (find-element 'title doc)]
          [attrgroups (map x:element-attributes (append metatags linktags))]
-         [meta (metadata (and titletag (element-string titletag))
+         [meta (metadata (url->string base-url) #f #f
+                         (and titletag (element-string titletag))
                          #f #f empty empty)])
     (for* ([attributes attrgroups])
       (match (list (or (attr 'name attributes) (attr 'property attributes))
@@ -374,11 +375,15 @@
                    (attr 'charset attributes))
         [(list _ _ _ _ (? string? charset))
          (set-metadata-charset! meta charset)]
-        [(list _ _ (? (lambda~> (member '("icon" "apple-touch-icon"))) type) url _)
+        [(list _ _ (? (lambda~>
+                        (member '("icon" "apple-touch-icon" "apple-touch-icon-precomposed" "mask-icon")))
+                      type) url _)
          (set-metadata-images!
           meta
           (append (metadata-images meta)
                   (list (metadata:image (absolute-url base-url url) type #f #f))))]
+        [(list _ _ "canonical" url _)
+         (set-metadata-canonical-url! meta url)]
         [(list "og:image" url _ _ _)
          (set-metadata-images!
           meta
@@ -409,6 +414,8 @@
          (let ([video (last (metadata-videos meta))])
            (when video
              (set-metadata:video-type! video content)))]
+        [(list "og:type" content _ _ _)
+         (set-metadata-type! meta content)]
         [(list "og:title" content _ _ _)
          (set-metadata-title! meta content)]
         [(list "og:description" content _ _ _)
@@ -536,7 +543,8 @@
 ; (define url (string->url "https://minond.xyz/posts/adt-type-meaning"))
 ; (define url (string->url "https://2ality.com/2022/12/set-methods.html"))
 ; (define url (string->url "https://www.evanmiller.org/statistical-formulas-for-programmers.html"))
-(define url (string->url "https://www.youtube.com/watch?v=J8uAiZJMfzQ&t=1s"))
+; (define url (string->url "https://www.youtube.com/watch?v=J8uAiZJMfzQ&t=1s"))
+(define url (string->url "https://vimeo.com/783454485?embedded=true&source=vimeo_logo&owner=9156614"))
 
 (define doc (download url))
 
@@ -565,8 +573,8 @@
 
 (with-output-to-file "ignore4.txt" #:exists 'replace
   (lambda ()
-    (show
-     (score-element (find-element 'body doc)))))
+    (pretty-display
+     (find-element 'body doc))))
 
 (with-output-to-file "ignore3.html" #:exists 'replace
   (lambda ()
