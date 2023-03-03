@@ -344,87 +344,91 @@
 (define (extract-content doc url)
   (element-content (find-article-root doc) url))
 
-;; TODO original-url
-;;      cononical-url
-;;      keywords
-(struct metadata (url canonical-url type title description charset images videos)
+(struct metadata (original-url canonical-url type title description charset)
+  #:constructor-name make-metadata
   #:transparent
   #:mutable)
 
-(struct metadata:image (url type width height)
+(struct media (images videos)
+  #:constructor-name make-media
   #:transparent
   #:mutable)
 
-(struct metadata:video (url type width height)
+(struct media:image (url type width height)
   #:transparent
   #:mutable)
 
-(define (extract-metadata doc base-url)
+(struct media:video (url type width height)
+  #:transparent
+  #:mutable)
+
+(define (extract-metadata-and-media doc base-url)
   (let* ([metatags (find-elements 'meta doc)]
          [linktags (find-elements 'link doc)]
          [titletag (find-element 'title doc)]
          [attrgroups (map x:element-attributes (append metatags linktags))]
-         [meta (metadata (url->string base-url) #f #f
-                         (and titletag (element-string titletag))
-                         #f #f empty empty)])
+         [media (make-media empty empty)]
+         [metadata (make-metadata (url->string base-url) #f #f
+                                  (and titletag (element-string titletag))
+                                  #f #f)])
     (for* ([attributes attrgroups])
       (match (list (or (attr 'name attributes) (attr 'property attributes))
                    (attr 'content attributes)
                    (attr 'rel attributes)
                    (attr 'href attributes)
                    (attr 'charset attributes))
-        [(list _ _ _ _ (? string? charset))
-         (set-metadata-charset! meta charset)]
         [(list _ _ (? (lambda~>
-                        (member '("icon" "apple-touch-icon" "apple-touch-icon-precomposed" "mask-icon")))
+                       (member '("icon" "apple-touch-icon" "apple-touch-icon-precomposed" "mask-icon")))
                       type) url _)
-         (set-metadata-images!
-          meta
-          (append (metadata-images meta)
-                  (list (metadata:image (absolute-url base-url url) type #f #f))))]
-        [(list _ _ "canonical" url _)
-         (set-metadata-canonical-url! meta url)]
+         (set-media-images!
+          media
+          (append (media-images media)
+                  (list (media:image (absolute-url base-url url) type #f #f))))]
         [(list "og:image" url _ _ _)
-         (set-metadata-images!
-          meta
-          (append (metadata-images meta)
-                  (list (metadata:image (absolute-url base-url url) "image" #f #f))))]
+         (set-media-images!
+          media
+          (append (media-images media)
+                  (list (media:image (absolute-url base-url url) "image" #f #f))))]
         [(list "og:image:width" content _ _ _)
-         (let ([image (last (metadata-images meta))])
+         (let ([image (last (media-images media))])
            (when image
-             (set-metadata:image-width! image content)))]
+             (set-media:image-width! image content)))]
         [(list "og:image:height" content _ _ _)
-         (let ([image (last (metadata-images meta))])
+         (let ([image (last (media-images media))])
            (when image
-             (set-metadata:image-height! image content)))]
+             (set-media:image-height! image content)))]
         [(list "og:video:url" url _ _ _)
-         (set-metadata-videos!
-          meta
-          (append (metadata-videos meta)
-                  (list (metadata:video (absolute-url base-url url) #f #f #f))))]
+         (set-media-videos!
+          media
+          (append (media-videos media)
+                  (list (media:video (absolute-url base-url url) #f #f #f))))]
         [(list "og:video:width" content _ _ _)
-         (let ([video (last (metadata-videos meta))])
+         (let ([video (last (media-videos media))])
            (when video
-             (set-metadata:video-width! video content)))]
+             (set-media:video-width! video content)))]
         [(list "og:video:height" content _ _ _)
-         (let ([video (last (metadata-videos meta))])
+         (let ([video (last (media-videos media))])
            (when video
-             (set-metadata:video-height! video content)))]
+             (set-media:video-height! video content)))]
         [(list "og:video:type" content _ _ _)
-         (let ([video (last (metadata-videos meta))])
+         (let ([video (last (media-videos media))])
            (when video
-             (set-metadata:video-type! video content)))]
+             (set-media:video-type! video content)))]
+        [(list _ _ "canonical" url _)
+         (set-metadata-canonical-url! metadata url)]
+        [(list _ _ _ _ (? string? charset))
+         (set-metadata-charset! metadata charset)]
         [(list "og:type" content _ _ _)
-         (set-metadata-type! meta content)]
+         (set-metadata-type! metadata content)]
         [(list "og:title" content _ _ _)
-         (set-metadata-title! meta content)]
+         (set-metadata-title! metadata content)]
         [(list "og:description" content _ _ _)
-         (set-metadata-description! meta content)]
+         (set-metadata-description! metadata content)]
         [(list "description" content _ _ _)
-         (set-metadata-description! meta content)]
+         (set-metadata-description! metadata content)]
         [_
          (void)]))
-    meta))
+    (list metadata media)))
 
 (define (render-page elem-or-lst)
   (:xml->string
@@ -549,7 +553,7 @@
 (define doc (download url))
 
 (pretty-display
- (extract-metadata doc url))
+ (extract-metadata-and-media doc url))
 
 (with-output-to-file "ignore0.txt" #:exists 'replace
   (lambda ()
