@@ -204,12 +204,16 @@
 (struct id (value) #:transparent)
 
 (define ignorable-tags
-  '(aside header footer nav script style))
+  '(aside header form footer nav script style))
 (define (ignorable-element? elem)
   (let* ([el (element-ref elem)]
          [attributes (if (x:element? el) (x:element-attributes el) empty)]
+         [id (attr 'id attributes #:default "")]
          [class (attr 'class attributes #:default "")])
     (or
+     (string-contains? id "sidebar") ; Lambda the Ultimate
+     (string-contains? id "footer") ; Lambda the Ultimate
+     (string-contains? class "breadcrumb") ; Lambda the Ultimate
      (string-contains? class "nomobile")
      (string-contains? class "sidebar")
      (string-contains? class "noprint")
