@@ -431,7 +431,7 @@
          (void)]))
     (list metadata media)))
 
-(define (render-page elem-or-lst)
+(define (render-page metadata media content)
   (:xml->string
    (:html
     (:head
@@ -457,14 +457,29 @@
         max-width: 75%;
       }
       main {
-        max-width: 90%;
+        max-width: 700px;
         margin: 0 auto;
+        padding: 2em 1em 4em 1em;
+      }
+      pre {
+        overflow-y: scroll;
         padding: 1em;
+        background-color: rgb(246, 246, 246);
+        border: 1px solid rgb(224, 224, 224);
+      }
+      blockquote {
+        margin: 0;
+        border-left: 7px solid rgb(218, 218, 218);
+        padding: 0em 1em;
+        font-style: italic;
       }
      "))
     (:body
      (:element 'main
-               (render-content elem-or-lst))))))
+               (:element 'header
+                         (:h1 (metadata-title metadata)))
+               (:element 'article
+                         (render-content content)))))))
 
 (define headings-by-level
   (hash
@@ -584,5 +599,6 @@
 (with-output-to-file "ignore3.html" #:exists 'replace
   (lambda ()
     (display
-     (render-page
-      (extract-content doc url)))))
+     (eval `(render-page
+             ,@(extract-metadata-and-media doc url)
+             (extract-content doc url))))))
