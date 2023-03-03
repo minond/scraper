@@ -563,8 +563,11 @@
 ; (define url (string->url "https://minond.xyz/posts/adt-type-meaning"))
 ; (define url (string->url "https://2ality.com/2022/12/set-methods.html"))
 ; (define url (string->url "https://www.evanmiller.org/statistical-formulas-for-programmers.html"))
-; (define url (string->url "https://www.youtube.com/watch?v=J8uAiZJMfzQ&t=1s"))
-(define url (string->url "https://vimeo.com/783454485?embedded=true&source=vimeo_logo&owner=9156614"))
+; (define url (string->url "https://vimeo.com/783454485?embedded=true&source=vimeo_logo&owner=9156614")) ; Able to extract video data, no content (description) though
+; (define url (string->url "https://www.youtube.com/watch?v=J8uAiZJMfzQ&t=1s")) ; Same as Vimeo extract
+; (define url (string->url "https://eli.thegreenplace.net/2023/using-goatcounter-for-blog-analytics/")) ; Looks good
+; (define url (string->url "https://blog.regehr.org/archives/1653")) ; Needs br's
+(define url (string->url "https://esoteric.codes/blog/open-and-shut")) ; Needs to get embeded video
 
 (define doc (download url))
 
@@ -594,7 +597,8 @@
 (with-output-to-file "ignore4.txt" #:exists 'replace
   (lambda ()
     (pretty-display
-     (find-element 'body doc))))
+     (score-element
+      (find-element 'article doc)))))
 
 (with-output-to-file "ignore3.html" #:exists 'replace
   (lambda ()
