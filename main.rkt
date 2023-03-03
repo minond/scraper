@@ -145,7 +145,8 @@
    (filter identity
            (list
             (find-element 'body doc)
-            (find-element 'main doc)))))
+            (find-element 'main doc)
+            (find-element 'article doc)))))
 
 (define (find-highest-score/list lst)
   (let* ([scored (map score-element lst)]
