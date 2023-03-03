@@ -225,8 +225,10 @@
      (string-contains? class "navigation-not-searchable") ; Wikimedia
      (equal? "navigation" (attr 'role attributes #:default "")))))
 
-(define (absolute-url base-url relative-url)
-  (if (equal? #\# (string-ref relative-url 0))
+(define (absolute-url base-url raw-relative-url)
+  (define relative-url (string-strip raw-relative-url))
+  (if (or (eq? 0 (string-length relative-url))
+          (equal? #\# (string-ref relative-url 0)))
       relative-url
       (url->string (combine-url/relative base-url relative-url))))
 
@@ -236,10 +238,13 @@
     (filter identity
             (list (and id-value (id id-value))))))
 
-(define (element-string el)
-  (~> (element-string-aux el)
+(define (string-strip string)
+  (~> string
       (regexp-replace* #px"^\\s+|\\s+$" _ "")
       (regexp-replace* #px"\\s+" _ " ")))
+
+(define (element-string el)
+  (string-strip (element-string-aux el)))
 
 (define (element-string-aux el [acc ""])
   (cond
@@ -571,7 +576,8 @@
 ; (define url (string->url "https://www.youtube.com/watch?v=J8uAiZJMfzQ&t=1s")) ; Same as Vimeo extract
 ; (define url (string->url "https://eli.thegreenplace.net/2023/using-goatcounter-for-blog-analytics/")) ; Looks good
 ; (define url (string->url "https://blog.regehr.org/archives/1653")) ; Needs br's
-(define url (string->url "https://esoteric.codes/blog/open-and-shut")) ; Needs to get embeded video
+; (define url (string->url "https://esoteric.codes/blog/open-and-shut")) ; Needs to get embeded video
+(define url (string->url "http://lambda-the-ultimate.org/node/5629"))
 
 (define doc (download url))
 
