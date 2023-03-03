@@ -344,11 +344,18 @@
 (define (extract-content doc url)
   (element-content (find-article-root doc) url))
 
-(struct metadata (title description charset site-logos page-logos)
+;; TODO original-url
+;;      cononical-url
+;;      keywords
+(struct metadata (title description charset images videos)
   #:transparent
   #:mutable)
 
-(struct logo (src width height)
+(struct metadata:image (kind url width height)
+  #:transparent
+  #:mutable)
+
+(struct metadata:video (url width height)
   #:transparent
   #:mutable)
 
@@ -367,30 +374,30 @@
                    (attr 'charset attributes))
         [(list _ _ _ _ (? string? charset))
          (set-metadata-charset! meta charset)]
-        [(list "og:image" url _ _ _)
-         (set-metadata-page-logos!
+        [(list _ _ (? (lambda~> (member '("icon" "apple-touch-icon"))) kind) url _)
+         (set-metadata-images!
           meta
-          (append (metadata-page-logos meta)
-                  (list (logo (absolute-url base-url url) #f #f))))]
+          (append (metadata-images meta)
+                  (list (metadata:image kind (absolute-url base-url url) #f #f))))]
+        [(list "og:image" url _ _ _)
+         (set-metadata-images!
+          meta
+          (append (metadata-images meta)
+                  (list (metadata:image "image" (absolute-url base-url url) #f #f))))]
         [(list "og:image:width" content _ _ _)
-         (let ([logo (last (metadata-page-logos meta))])
-           (when logo
-             (set-logo-width! logo content)))]
+         (let ([image (last (metadata-images meta))])
+           (when image
+             (set-metadata:image-width! image content)))]
         [(list "og:image:height" content _ _ _)
-         (let ([logo (last (metadata-page-logos meta))])
-           (when logo
-             (set-logo-height! logo content)))]
+         (let ([image (last (metadata-images meta))])
+           (when image
+             (set-metadata:image-height! image content)))]
         [(list "og:title" content _ _ _)
          (set-metadata-title! meta content)]
         [(list "og:description" content _ _ _)
          (set-metadata-description! meta content)]
         [(list "description" content _ _ _)
          (set-metadata-description! meta content)]
-        [(list _ _ (? (lambda~> (member '("icon" "apple-touch-icon")))) url _)
-         (set-metadata-site-logos!
-          meta
-          (append (metadata-site-logos meta)
-                  (list (logo (absolute-url base-url url) #f #f))))]
         [_
          (void)]))
     meta))
@@ -504,7 +511,7 @@
 ; (define url (string->url "https://shopify.engineering/scale-performance-testing"))
 ; (define url (string->url "https://www.quantamagazine.org/physicists-create-a-wormhole-using-a-quantum-computer-20221130/")) ; bad, displaying javascript code
 ; (define url (string->url "https://bytebytego.com/courses/system-design-interview/scale-from-zero-to-millions-of-users")) ; bad, but bad for all extractors
-(define url (string->url "https://accu.org/journals/overload/30/172/teodorescu/")) ; mostly works but is missing first image attributes and element ids for document href links, maybe tables as well
+; (define url (string->url "https://accu.org/journals/overload/30/172/teodorescu/")) ; mostly works but is missing first image attributes and element ids for document href links, maybe tables as well
 ; (define url (string->url "https://en.wikipedia.org/wiki/Cardinal_virtues")) ; missing bold, italic elements, should ignore "sidebar" table, need to fix relative links, odd thing happening with references list items going outside of the ol element
 ; (define url (string->url "https://en.wikipedia.org/wiki/Mouse")) ; References list issue coming up here as well, external links are missing as well
 ; (define url (string->url "https://solarianprogrammer.com/2018/01/12/writing-minimal-x86-64-jit-compiler-cpp-part-2/")) ; mostly working, needs pre/code elements and should also respect whitespace
@@ -512,6 +519,7 @@
 ; (define url (string->url "https://minond.xyz/posts/adt-type-meaning"))
 ; (define url (string->url "https://2ality.com/2022/12/set-methods.html"))
 ; (define url (string->url "https://www.evanmiller.org/statistical-formulas-for-programmers.html"))
+(define url (string->url "https://www.youtube.com/watch?v=J8uAiZJMfzQ&t=1s"))
 
 (define doc (download url))
 
@@ -537,6 +545,11 @@
   (lambda ()
     (pretty-display
      (extract-content doc url))))
+
+(with-output-to-file "ignore4.txt" #:exists 'replace
+  (lambda ()
+    (show
+     (score-element (find-element 'body doc)))))
 
 (with-output-to-file "ignore3.html" #:exists 'replace
   (lambda ()
