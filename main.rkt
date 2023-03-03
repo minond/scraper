@@ -203,7 +203,7 @@
 (struct id (value) #:transparent)
 
 (define ignorable-tags
-  '(aside header nav script style))
+  '(aside header footer nav script style))
 (define (ignorable-element? elem)
   (let* ([el (element-ref elem)]
          [attributes (if (x:element? el) (x:element-attributes el) empty)]
