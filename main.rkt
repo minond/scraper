@@ -140,13 +140,24 @@
         (car res)
         #f)))
 
+;; Due to an issue where the HTML parser is not properly handling nested
+;; elements (sometimes a node's children are not included as its content but as
+;; it siblings instead), we have to aggressively check a few places when
+;; looking for the root element. This is just a workaround, since this issue
+;; could cause parts of the content to be split into separate sections in the
+;; document and only one gets tagged as the root.
+;;
+;; TODO Fix issue where nested elements are not captured as children, but
+;; captured as siblings instead.
 (define (find-article-root doc)
   (find-highest-score/list
-   (filter identity
-           (list
-            (find-element 'body doc)
-            (find-element 'main doc)
-            (find-element 'article doc)))))
+   (filter (lambda (elem)
+             (and (x:element? elem)
+                  (not (empty? (x:element-content elem)))))
+           (append (list (find-element 'body doc)
+                         (find-element 'main doc)
+                         (find-element 'article doc))
+                   (find-elements 'div doc)))))
 
 (define (find-highest-score/list lst)
   (let* ([scored (map score-element lst)]
@@ -590,7 +601,11 @@
 ; (define url (string->url "http://lambda-the-ultimate.org/node/5629")) ; Looks good
 ; (define url (string->url "https://martin.kleppmann.com/2021/04/14/goodbye-gpl.html")) ; Looks good
 ; (define url (string->url "https://twitter.com/lexi_lambda/status/1295426437583982592")) ; Not working, JS rendered
-(define url (string->url "https://blog.bytebytego.com/p/from-0-to-millions-a-guide-to-scaling-7b4"))
+; (define url (string->url "https://blog.bytebytego.com/p/from-0-to-millions-a-guide-to-scaling-7b4")) ; Works
+; (define url (string->url "https://medium.com/@dkeout/why-you-must-actually-understand-the-ω-and-y-combinators-c9204241da7a")) ; Link doesn't include child nodes in parsed HTML
+; (define url (string->url "https://github.com/donnemartin/system-design-primer/blob/master/README.md")) ; Anchor tags don't render because they don't have content
+; (define url (string->url "https://lithub.com/the-octopus-an-alien-among-us/")) ; Needed find-article-root to check all divs to find root
+(define url (string->url "https://books.underscore.io/shapeless-guide/shapeless-guide.html"))
 
 (define doc (download url))
 
