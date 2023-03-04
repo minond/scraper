@@ -471,6 +471,56 @@
          (void)]))
     media))
 
+(define (extract-base-url doc base-url)
+  (define els (append (find-elements 'link doc)
+                      (find-elements 'meta doc)))
+  (define author-tags
+    (remove-duplicates
+     (filter
+      string?
+      (map (lambda (el)
+             (define attributes (x:element-attributes el))
+             (and (or (equal? "article:author" (attr 'property attributes))
+                      (equal? "author" (attr 'rel attributes)))
+                  (or (attr 'content attributes)
+                      (attr 'href attributes))))
+           els))))
+  (if (empty? author-tags)
+      (page-url->homepage-url base-url)
+      (string->url (absolute-url base-url (car author-tags)))))
+
+(define (page-url->homepage-url page-url)
+  (url (url-scheme page-url)
+       (url-user page-url)
+       (url-host page-url)
+       (url-port page-url)
+       #t
+       empty
+       empty
+       #f))
+
+(define (extract-feed-url doc base-url)
+  (define els (find-elements 'link doc))
+  (define alternative-tags
+    (filter (lambda (el)
+              (let* ([attributes (x:element-attributes el)]
+                     [rel (attr 'rel attributes)]
+                     [type (attr 'type attributes)]
+                     [href (attr 'href attributes)])
+                (and rel type href
+                     (or (string-contains? type "rss")
+                         (string-contains? type "atom")))))
+            els))
+  (define urls
+    (map (lambda (el)
+           (absolute-url
+            base-url
+            (attr 'href (x:element-attributes el))))
+         alternative-tags))
+  (if (empty? urls)
+      #f
+      (string->url (car urls))))
+
 (define (render-page metadata media content)
   (:xml->string
    (:html
@@ -516,6 +566,9 @@
         border-left: 7px solid rgb(218, 218, 218);
         padding: 0em 1em;
         font-style: italic;
+      }
+      li p {
+        margin: 0;
       }
      "))
     (:body
@@ -598,67 +651,79 @@
          ; (printf "[error] unimplemented ~a\n" elem-or-lst)
          ""])))
 
-; (define url (string->url "https://shopify.engineering/scale-performance-testing"))
-; (define url (string->url "https://www.quantamagazine.org/physicists-create-a-wormhole-using-a-quantum-computer-20221130/")) ; bad, displaying javascript code
-; (define url (string->url "https://bytebytego.com/courses/system-design-interview/scale-from-zero-to-millions-of-users")) ; bad, but bad for all extractors
-; (define url (string->url "https://accu.org/journals/overload/30/172/teodorescu/")) ; mostly works but is missing first image attributes and element ids for document href links, maybe tables as well
-; (define url (string->url "https://en.wikipedia.org/wiki/Cardinal_virtues")) ; missing bold, italic elements, should ignore "sidebar" table, need to fix relative links, odd thing happening with references list items going outside of the ol element
-; (define url (string->url "https://en.wikipedia.org/wiki/Mouse")) ; References list issue coming up here as well, external links are missing as well
-; (define url (string->url "https://solarianprogrammer.com/2018/01/12/writing-minimal-x86-64-jit-compiler-cpp-part-2/")) ; mostly working, needs pre/code elements and should also respect whitespace
-; (define url (string->url "https://www.resilience.org/stories/2020-06-08/collapse-of-civilisation-is-the-most-likely-outcome-top-climate-scientists/")) ; including shared buttons at top of page, look into removing, need blockquote elements
-; (define url (string->url "https://minond.xyz/posts/adt-type-meaning"))
-; (define url (string->url "https://2ality.com/2022/12/set-methods.html"))
-; (define url (string->url "https://www.evanmiller.org/statistical-formulas-for-programmers.html"))
-; (define url (string->url "https://vimeo.com/783454485?embedded=true&source=vimeo_logo&owner=9156614")) ; Able to extract video data, no content (description) though
-; (define url (string->url "https://www.youtube.com/watch?v=J8uAiZJMfzQ&t=1s")) ; Same as Vimeo extract
-; (define url (string->url "https://eli.thegreenplace.net/2023/using-goatcounter-for-blog-analytics/")) ; Looks good
-; (define url (string->url "https://blog.regehr.org/archives/1653")) ; Needs br's
-; (define url (string->url "https://esoteric.codes/blog/open-and-shut")) ; Needs to get embeded video
-; (define url (string->url "http://lambda-the-ultimate.org/node/5629")) ; Looks good
-; (define url (string->url "https://martin.kleppmann.com/2021/04/14/goodbye-gpl.html")) ; Looks good
-; (define url (string->url "https://twitter.com/lexi_lambda/status/1295426437583982592")) ; Not working, JS rendered
-; (define url (string->url "https://blog.bytebytego.com/p/from-0-to-millions-a-guide-to-scaling-7b4")) ; Works
-; (define url (string->url "https://medium.com/@dkeout/why-you-must-actually-understand-the-ω-and-y-combinators-c9204241da7a")) ; Link doesn't include child nodes in parsed HTML
-; (define url (string->url "https://github.com/donnemartin/system-design-primer/blob/master/README.md")) ; Anchor tags don't render because they don't have content
-; (define url (string->url "https://lithub.com/the-octopus-an-alien-among-us/")) ; Needed find-article-root to check all divs to find root
-; (define url (string->url "https://books.underscore.io/shapeless-guide/shapeless-guide.html"))
-(define url (string->url "https://lexi-lambda.github.io/blog/2018/10/06/macroexpand-anywhere-with-local-apply-transformer/"))
+; (define page-url (string->url "https://shopify.engineering/scale-performance-testing"))
+; (define page-url (string->url "https://www.quantamagazine.org/physicists-create-a-wormhole-using-a-quantum-computer-20221130/")) ; bad, displaying javascript code
+; (define page-url (string->url "https://bytebytego.com/courses/system-design-interview/scale-from-zero-to-millions-of-users")) ; bad, but bad for all extractors
+; (define page-url (string->url "https://accu.org/journals/overload/30/172/teodorescu/")) ; mostly works but is missing first image attributes and element ids for document href links, maybe tables as well
+; (define page-url (string->url "https://en.wikipedia.org/wiki/Cardinal_virtues")) ; missing bold, italic elements, should ignore "sidebar" table, need to fix relative links, odd thing happening with references list items going outside of the ol element
+; (define page-url (string->url "https://en.wikipedia.org/wiki/Mouse")) ; References list issue coming up here as well, external links are missing as well
+; (define page-url (string->url "https://solarianprogrammer.com/2018/01/12/writing-minimal-x86-64-jit-compiler-cpp-part-2/")) ; mostly working, needs pre/code elements and should also respect whitespace
+; (define page-url (string->url "https://www.resilience.org/stories/2020-06-08/collapse-of-civilisation-is-the-most-likely-outcome-top-climate-scientists/")) ; including shared buttons at top of page, look into removing, need blockquote elements
+; (define page-url (string->url "https://minond.xyz/posts/adt-type-meaning"))
+; (define page-url (string->url "https://2ality.com/2022/12/set-methods.html"))
+; (define page-url (string->url "https://www.evanmiller.org/statistical-formulas-for-programmers.html"))
+; (define page-url (string->url "https://vimeo.com/783454485?embedded=true&source=vimeo_logo&owner=9156614")) ; Able to extract video data, no content (description) though
+; (define page-url (string->url "https://www.youtube.com/watch?v=J8uAiZJMfzQ&t=1s")) ; Same as Vimeo extract
+; (define page-url (string->url "https://eli.thegreenplace.net/2023/using-goatcounter-for-blog-analytics/")) ; Looks good
+; (define page-url (string->url "https://blog.regehr.org/archives/1653")) ; Needs br's
+; (define page-url (string->url "https://esoteric.codes/blog/open-and-shut")) ; Needs to get embeded video
+; (define page-url (string->url "http://lambda-the-ultimate.org/node/5629")) ; Looks good
+; (define page-url (string->url "https://martin.kleppmann.com/2021/04/14/goodbye-gpl.html")) ; Looks good
+; (define page-url (string->url "https://twitter.com/lexi_lambda/status/1295426437583982592")) ; Not working, JS rendered
+; (define page-url (string->url "https://blog.bytebytego.com/p/from-0-to-millions-a-guide-to-scaling-7b4")) ; Works
+; (define page-url (string->url "https://medium.com/@dkeout/why-you-must-actually-understand-the-ω-and-y-combinators-c9204241da7a")) ; Link doesn't include child nodes in parsed HTML
+(define page-url (string->url "https://blog.bytebytego.com/p/ep49-api-architectural-styles?utm_source=post-email-title&publication_id=817132&post_id=106350890&isFreemail=true&utm_medium=email"))
+; (define page-url (string->url "https://github.com/donnemartin/system-design-primer/blob/master/README.md")) ; Anchor tags don't render because they don't have content
+; (define page-url (string->url "https://lithub.com/the-octopus-an-alien-among-us/")) ; Needed find-article-root to check all divs to find root
+; (define page-url (string->url "https://books.underscore.io/shapeless-guide/shapeless-guide.html"))
+; (define page-url (string->url "https://lexi-lambda.github.io/blog/2018/10/06/macroexpand-anywhere-with-local-apply-transformer/"))
+(define page-doc (download page-url))
 
-(define doc (download url))
+(define base-url (extract-base-url page-doc page-url))
+(define base-doc (download base-url))
 
-(pretty-display (extract-metadata doc url))
-(pretty-display (extract-media doc url))
+(define feed-url (extract-feed-url base-doc base-url))
 
-(with-output-to-file "ignore0.txt" #:exists 'replace
-  (lambda ()
-    (pretty-display doc)))
+(printf "base-url: ~a\n" (url->string base-url))
+(printf "feed-url: ~a\n" (url->string feed-url))
+(printf "page-url: ~a\n" (url->string page-url))
 
-(with-output-to-file "ignore.txt" #:exists 'replace
-  (lambda ()
-    ; (pretty-display doc)
-    (show (find-article-root doc))
-    ; (show (score-element (find-element 'main doc)))
-    ; (show (score-element doc))))
-    ))
+; (pretty-display (extract-metadata base-doc base-url))
+; (pretty-display (extract-media base-doc base-url))
 
-(void
- (extract-content doc url))
+; (pretty-display (extract-metadata page-doc page-url))
+; (pretty-display (extract-media page-doc page-url))
 
-(with-output-to-file "ignore2.txt" #:exists 'replace
-  (lambda ()
-    (pretty-display
-     (extract-content doc url))))
-
-(with-output-to-file "ignore4.txt" #:exists 'replace
-  (lambda ()
-    (pretty-display
-     (score-element
-      (find-element 'article doc)))))
-
-(with-output-to-file "ignore3.html" #:exists 'replace
-  (lambda ()
-    (display
-     (render-page
-      (extract-metadata doc url)
-      (extract-media doc url)
-      (extract-content doc url)))))
+; (with-output-to-file "ignore0.txt" #:exists 'replace
+;   (lambda ()
+;     (pretty-display page-doc)))
+;
+; (with-output-to-file "ignore.txt" #:exists 'replace
+;   (lambda ()
+;     ; (pretty-display page-doc)
+;     (show (find-article-root page-doc))
+;     ; (show (score-element (find-element 'main page-doc)))
+;     ; (show (score-element page-doc))))
+;     ))
+;
+; (void
+;  (extract-content page-doc page-url))
+;
+; (with-output-to-file "ignore2.txt" #:exists 'replace
+;   (lambda ()
+;     (pretty-display
+;      (extract-content page-doc page-url))))
+;
+; (with-output-to-file "ignore4.txt" #:exists 'replace
+;   (lambda ()
+;     (pretty-display
+;      (score-element
+;       (find-element 'article page-doc)))))
+;
+; (with-output-to-file "ignore3.html" #:exists 'replace
+;   (lambda ()
+;     (display
+;      (render-page
+;       (extract-metadata page-doc page-url)
+;       (extract-media page-doc page-url)
+;       (extract-content page-doc page-url)))))
