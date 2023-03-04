@@ -373,6 +373,8 @@
   #:transparent
   #:mutable)
 
+(define metadata-icon-rels
+  '("icon" "shortcut icon" "apple-touch-icon" "apple-touch-icon-precomposed" "mask-icon"))
 (define (extract-metadata-and-media doc base-url)
   (let* ([metatags (find-elements 'meta doc)]
          [linktags (find-elements 'link doc)]
@@ -388,9 +390,7 @@
                    (attr 'rel attributes)
                    (attr 'href attributes)
                    (attr 'charset attributes))
-        [(list _ _ (? (lambda~>
-                       (member '("icon" "apple-touch-icon" "apple-touch-icon-precomposed" "mask-icon")))
-                      type) url _)
+        [(list _ _ (? (lambda~> (member metadata-icon-rels)) type) url _)
          (set-media-images!
           media
           (append (media-images media)
