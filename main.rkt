@@ -464,12 +464,15 @@
       }
       img,
       video {
-        max-width: 75%;
+        max-width: 100%;
       }
       main {
-        max-width: 700px;
+        max-width: 600px;
         margin: 0 auto;
         padding: 2em 1em 4em 1em;
+      }
+      article {
+        line-height: 24px;
       }
       pre {
         overflow-y: scroll;
@@ -580,7 +583,8 @@
 ; (define url (string->url "https://esoteric.codes/blog/open-and-shut")) ; Needs to get embeded video
 ; (define url (string->url "http://lambda-the-ultimate.org/node/5629")) ; Looks good
 ; (define url (string->url "https://martin.kleppmann.com/2021/04/14/goodbye-gpl.html")) ; Looks good
-(define url (string->url "https://twitter.com/lexi_lambda/status/1295426437583982592")) ; Not working, JS rendered
+; (define url (string->url "https://twitter.com/lexi_lambda/status/1295426437583982592")) ; Not working, JS rendered
+(define url (string->url "https://blog.bytebytego.com/p/from-0-to-millions-a-guide-to-scaling-7b4"))
 
 (define doc (download url))
 
