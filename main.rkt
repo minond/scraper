@@ -387,17 +387,45 @@
   #:transparent
   #:mutable)
 
-(define metadata-icon-rels
-  '("icon" "shortcut icon" "apple-touch-icon" "apple-touch-icon-precomposed" "mask-icon"))
-(define (extract-metadata-and-media doc base-url)
+(define (extract-metadata doc base-url)
   (let* ([metatags (find-elements 'meta doc)]
          [linktags (find-elements 'link doc)]
          [titletag (find-element 'title doc)]
          [attrgroups (map x:element-attributes (append metatags linktags))]
-         [media (make-media empty empty)]
          [metadata (make-metadata (url->string base-url) #f #f
                                   (and titletag (element-string titletag))
                                   #f #f)])
+    (for* ([attributes attrgroups])
+      (match (list (or (attr 'name attributes) (attr 'property attributes))
+                   (attr 'content attributes)
+                   (attr 'rel attributes)
+                   (attr 'href attributes)
+                   (attr 'charset attributes))
+        [(list _ _ "canonical" url _)
+         (set-metadata-canonical-url! metadata url)]
+        [(list _ _ _ _ (? string? charset))
+         (set-metadata-charset! metadata charset)]
+        [(list "og:type" content _ _ _)
+         (set-metadata-type! metadata content)]
+        [(list "og:title" content _ _ _)
+         (set-metadata-title! metadata content)]
+        [(list "og:description" content _ _ _)
+         (set-metadata-description! metadata content)]
+        [(list "description" content _ _ _)
+         (set-metadata-description! metadata content)]
+        [_
+         (void)]))
+    metadata))
+
+(define metadata-icon-rels
+  '("icon" "shortcut icon" "apple-touch-icon" "apple-touch-icon-precomposed" "mask-icon"))
+
+(define (extract-media doc base-url)
+  (let* ([metatags (find-elements 'meta doc)]
+         [linktags (find-elements 'link doc)]
+         [titletag (find-element 'title doc)]
+         [attrgroups (map x:element-attributes (append metatags linktags))]
+         [media (make-media empty empty)])
     (for* ([attributes attrgroups])
       (match (list (or (attr 'name attributes) (attr 'property attributes))
                    (attr 'content attributes)
@@ -439,21 +467,9 @@
          (let ([video (last (media-videos media))])
            (when video
              (set-media:video-type! video content)))]
-        [(list _ _ "canonical" url _)
-         (set-metadata-canonical-url! metadata url)]
-        [(list _ _ _ _ (? string? charset))
-         (set-metadata-charset! metadata charset)]
-        [(list "og:type" content _ _ _)
-         (set-metadata-type! metadata content)]
-        [(list "og:title" content _ _ _)
-         (set-metadata-title! metadata content)]
-        [(list "og:description" content _ _ _)
-         (set-metadata-description! metadata content)]
-        [(list "description" content _ _ _)
-         (set-metadata-description! metadata content)]
         [_
          (void)]))
-    (list metadata media)))
+    media))
 
 (define (render-page metadata media content)
   (:xml->string
@@ -605,12 +621,13 @@
 ; (define url (string->url "https://medium.com/@dkeout/why-you-must-actually-understand-the-ω-and-y-combinators-c9204241da7a")) ; Link doesn't include child nodes in parsed HTML
 ; (define url (string->url "https://github.com/donnemartin/system-design-primer/blob/master/README.md")) ; Anchor tags don't render because they don't have content
 ; (define url (string->url "https://lithub.com/the-octopus-an-alien-among-us/")) ; Needed find-article-root to check all divs to find root
-(define url (string->url "https://books.underscore.io/shapeless-guide/shapeless-guide.html"))
+; (define url (string->url "https://books.underscore.io/shapeless-guide/shapeless-guide.html"))
+(define url (string->url "https://lexi-lambda.github.io/blog/2018/10/06/macroexpand-anywhere-with-local-apply-transformer/"))
 
 (define doc (download url))
 
-(pretty-display
- (extract-metadata-and-media doc url))
+(pretty-display (extract-metadata doc url))
+(pretty-display (extract-media doc url))
 
 (with-output-to-file "ignore0.txt" #:exists 'replace
   (lambda ()
@@ -641,6 +658,7 @@
 (with-output-to-file "ignore3.html" #:exists 'replace
   (lambda ()
     (display
-     (eval `(render-page
-             ,@(extract-metadata-and-media doc url)
-             (extract-content doc url))))))
+     (render-page
+      (extract-metadata doc url)
+      (extract-media doc url)
+      (extract-content doc url)))))
