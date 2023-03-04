@@ -200,6 +200,7 @@
 (struct video (attributes src) #:transparent)
 (struct link (attributes href content) #:transparent)
 (struct separator () #:transparent)
+(struct line-break () #:transparent)
 
 (struct id (value) #:transparent)
 
@@ -299,6 +300,8 @@
                  content))]
         [(element 'hr _ _ _ _)
          (separator)]
+        [(element 'br _ _ _ _)
+         (line-break)]
         [(element 'ol children _ _ el)
          (ordered-list (extract-attributes el)
                        (element-content/list children base-url))]
@@ -475,6 +478,7 @@
         line-height: 24px;
       }
       pre {
+        line-height: 18px;
         overflow-y: scroll;
         padding: 1em;
         background-color: rgb(246, 246, 246);
@@ -545,6 +549,8 @@
          (render-element :pre attributes content)]
         [(separator)
          (:hr)]
+        [(line-break)
+         (:br)]
         [(video attributes src)
          (eval `(:element 'video
                           ,@(attributes-arguments attributes)
