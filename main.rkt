@@ -245,26 +245,26 @@
       [else
        (printf "~a~a (0%)\n" padding (object-name el))])))
 
-(struct heading (attributes level content) #:transparent)
-(struct paragraph (attributes content) #:transparent)
-(struct pre (attributes content) #:transparent)
-(struct code (attributes content) #:transparent)
-(struct bold (attributes content) #:transparent)
-(struct italic (attributes content) #:transparent)
-(struct blockquote (attributes content) #:transparent)
-(struct superscript (attributes content) #:transparent)
-(struct ordered-list (attributes items) #:transparent)
-(struct unordered-list (attributes items) #:transparent)
-(struct list-item (attributes content) #:transparent)
-(struct text (text) #:transparent)
-(struct entity (id) #:transparent)
-(struct image (attributes src alt) #:transparent)
-(struct video (attributes src) #:transparent)
-(struct link (attributes href content) #:transparent)
-(struct separator () #:transparent)
-(struct line-break () #:transparent)
+(struct heading (attributes level content) #:prefab)
+(struct paragraph (attributes content) #:prefab)
+(struct pre (attributes content) #:prefab)
+(struct code (attributes content) #:prefab)
+(struct bold (attributes content) #:prefab)
+(struct italic (attributes content) #:prefab)
+(struct blockquote (attributes content) #:prefab)
+(struct superscript (attributes content) #:prefab)
+(struct ordered-list (attributes items) #:prefab)
+(struct unordered-list (attributes items) #:prefab)
+(struct list-item (attributes content) #:prefab)
+(struct text (text) #:prefab)
+(struct entity (id) #:prefab)
+(struct image (attributes src alt) #:prefab)
+(struct video (attributes src) #:prefab)
+(struct link (attributes href content) #:prefab)
+(struct separator () #:prefab)
+(struct line-break () #:prefab)
 
-(struct id (value) #:transparent)
+(struct id (value) #:prefab)
 
 (define ignorable-tags
   '(aside header form footer nav script style))
@@ -424,21 +424,21 @@
 
 (struct metadata (original-url canonical-url type title description charset)
   #:constructor-name make-metadata
-  #:transparent
-  #:mutable)
+  #:mutable
+  #:prefab)
 
 (struct media (images videos)
   #:constructor-name make-media
-  #:transparent
-  #:mutable)
+  #:mutable
+  #:prefab)
 
 (struct media:image (url type width height)
-  #:transparent
-  #:mutable)
+  #:mutable
+  #:prefab)
 
 (struct media:video (url type width height)
-  #:transparent
-  #:mutable)
+  #:mutable
+  #:prefab)
 
 (define (extract-metadata doc base-url)
   (let* ([metatags (find-elements 'meta doc)]
