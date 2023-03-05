@@ -238,12 +238,14 @@
      (string-contains? class "navigation-not-searchable") ; Wikimedia
      (equal? "navigation" (attr 'role attributes #:default "")))))
 
-(define (absolute-url base-url raw-relative-url)
+(define (absolute-url base-url raw-relative-url #:convert [convert #t])
   (define relative-url (string-strip raw-relative-url))
   (if (or (eq? 0 (string-length relative-url))
           (equal? #\# (string-ref relative-url 0)))
       relative-url
-      (url->string (combine-url/relative base-url relative-url))))
+      (if convert
+          (url->string (combine-url/relative base-url relative-url))
+          (combine-url/relative base-url relative-url))))
 
 (define (extract-attributes el)
   (let* ([attributes (x:element-attributes el)]
@@ -487,7 +489,7 @@
            els))))
   (if (empty? author-tags)
       (page-url->homepage-url base-url)
-      (string->url (absolute-url base-url (car author-tags)))))
+      (absolute-url base-url (car author-tags) #:convert #f)))
 
 (define (page-url->homepage-url page-url)
   (url (url-scheme page-url)
@@ -513,13 +515,11 @@
             els))
   (define urls
     (map (lambda (el)
-           (absolute-url
-            base-url
-            (attr 'href (x:element-attributes el))))
+           (absolute-url base-url (attr 'href (x:element-attributes el)) #:convert #f))
          alternative-tags))
   (if (empty? urls)
       #f
-      (string->url (car urls))))
+      (car urls)))
 
 (define (render-page metadata media content)
   (:xml->string
@@ -672,7 +672,8 @@
 ; (define page-url (string->url "https://twitter.com/lexi_lambda/status/1295426437583982592")) ; Not working, JS rendered
 ; (define page-url (string->url "https://blog.bytebytego.com/p/from-0-to-millions-a-guide-to-scaling-7b4")) ; Works
 ; (define page-url (string->url "https://medium.com/@dkeout/why-you-must-actually-understand-the-ω-and-y-combinators-c9204241da7a")) ; Link doesn't include child nodes in parsed HTML
-(define page-url (string->url "https://blog.bytebytego.com/p/ep49-api-architectural-styles?utm_source=post-email-title&publication_id=817132&post_id=106350890&isFreemail=true&utm_medium=email"))
+; (define page-url (string->url "https://blog.bytebytego.com/p/ep49-api-architectural-styles?utm_source=post-email-title&publication_id=817132&post_id=106350890&isFreemail=true&utm_medium=email"))
+(define page-url (string->url "https://matt.might.net/articles/programmers-resolutions/"))
 ; (define page-url (string->url "https://github.com/donnemartin/system-design-primer/blob/master/README.md")) ; Anchor tags don't render because they don't have content
 ; (define page-url (string->url "https://lithub.com/the-octopus-an-alien-among-us/")) ; Needed find-article-root to check all divs to find root
 ; (define page-url (string->url "https://books.underscore.io/shapeless-guide/shapeless-guide.html"))
@@ -684,9 +685,9 @@
 
 (define feed-url (extract-feed-url base-doc base-url))
 
-(printf "base-url: ~a\n" (url->string base-url))
-(printf "feed-url: ~a\n" (url->string feed-url))
-(printf "page-url: ~a\n" (url->string page-url))
+(printf "base-url: ~a\n" (and base-url (url->string base-url)))
+(printf "feed-url: ~a\n" (and feed-url (url->string feed-url)))
+(printf "page-url: ~a\n" (and page-url (url->string page-url)))
 
 ; (pretty-display (extract-metadata base-doc base-url))
 ; (pretty-display (extract-media base-doc base-url))
