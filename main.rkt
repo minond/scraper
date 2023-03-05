@@ -122,6 +122,57 @@
     [else
      (element (object-name el) null 0 0 el)]))
 
+(define (find* el #:tag [tagq #f] #:attr [attrq #f])
+  (define res (find*/list el #:tag tagq #:attr attrq))
+  (and (not (empty? res))
+       (car res)))
+
+(define (find*/list el #:tag [tagq #f] #:attr [attrq #f] [acc empty])
+  (cond
+    [(list? el)
+     (append (flatten
+              (map (lambda (el)
+                     (find*/list el #:tag tagq #:attr attrq))
+                   el))
+             acc)]
+    [(not (x:element? el)) acc]
+    [(and tagq attrq)
+     (if (and (tag-equal? el tagq)
+              (attribute-equal? el attrq))
+         (cons el acc)
+         (find*/list (x:element-content el)
+                     #:tag tagq #:attr attrq acc))]
+    [tagq
+     (if (tag-equal? el tagq)
+         (cons el acc)
+         (find*/list (x:element-content el)
+                     #:tag tagq #:attr attrq acc))]
+    [attrq
+     (if (attribute-equal? el attrq)
+         (cons el acc)
+         (find*/list (x:element-content el)
+                     #:tag tagq #:attr attrq acc))]
+    [else acc]))
+
+(define (tag-equal? el q)
+  (eq? q (x:element-name el)))
+
+(define (attribute-equal? el q)
+  (match-define (list name value)
+    (if (list? q)
+        q
+        (list q #f)))
+
+  (define attributes (x:element-attributes el))
+  (define attribute (find-attr name attributes))
+
+  (if (or (and (not value)
+               attribute)
+          (and value
+               (equal? value (read-attr attribute))))
+      el
+      #f))
+
 (define (find-elements tag root [acc null])
   (cond
     [(list? root)
@@ -473,25 +524,29 @@
          (void)]))
     media))
 
+;; Extracts or deduces the "base" URL by (1) checking link and meta tags for a
+;; author or article:author, then (2) returning the base URL stripped of its
+;; path/query/fragment.
+;;
+;; TODO look for the http://schema.org/Person element.
 (define (extract-base-url doc base-url)
-  (define els (append (find-elements 'link doc)
-                      (find-elements 'meta doc)))
-  (define author-tags
-    (remove-duplicates
-     (filter
-      string?
+  (let/cc return
+    (define els
+      (filter identity
+              (list (find* page-doc #:tag 'link #:attr '(rel "author"))
+                    (find* page-doc #:tag 'meta #:attr '(property "article:author")))))
+    (define urls
       (map (lambda (el)
              (define attributes (x:element-attributes el))
-             (and (or (equal? "article:author" (attr 'property attributes))
-                      (equal? "author" (attr 'rel attributes)))
-                  (or (attr 'content attributes)
-                      (attr 'href attributes))))
-           els))))
-  (if (empty? author-tags)
-      (page-url->homepage-url base-url)
-      (absolute-url base-url (car author-tags) #:convert #f)))
+             (or (attr 'content attributes)
+                 (attr 'href attributes)))
+           els))
+    (when (not (empty? urls))
+      (return (absolute-url base-url (car urls) #:convert #f)))
 
-(define (page-url->homepage-url page-url)
+    (url-strip base-url)))
+
+(define (url-strip page-url)
   (url (url-scheme page-url)
        (url-user page-url)
        (url-host page-url)
@@ -501,6 +556,8 @@
        empty
        #f))
 
+;; Extracts an RSS or atom feed URL by (1) checking link tags that specify the
+;; feed URL, or (2) anchor tags that link to the feed.
 (define (extract-feed-url doc base-url)
   (let/cc return
     (define link-els (find-elements 'link doc))
@@ -684,9 +741,10 @@
 ; (define page-url (string->url "https://martin.kleppmann.com/2021/04/14/goodbye-gpl.html")) ; Looks good
 ; (define page-url (string->url "https://twitter.com/lexi_lambda/status/1295426437583982592")) ; Not working, JS rendered
 ; (define page-url (string->url "https://blog.bytebytego.com/p/from-0-to-millions-a-guide-to-scaling-7b4")) ; Works
-; (define page-url (string->url "https://medium.com/@dkeout/why-you-must-actually-understand-the-ω-and-y-combinators-c9204241da7a")) ; Link doesn't include child nodes in parsed HTML
+(define page-url (string->url "https://medium.com/@dkeout/why-you-must-actually-understand-the-ω-and-y-combinators-c9204241da7a")) ; Link doesn't include child nodes in parsed HTML
 ; (define page-url (string->url "https://blog.bytebytego.com/p/ep49-api-architectural-styles?utm_source=post-email-title&publication_id=817132&post_id=106350890&isFreemail=true&utm_medium=email"))
-(define page-url (string->url "https://matt.might.net/articles/programmers-resolutions/"))
+; (define page-url (string->url "https://matt.might.net/articles/programmers-resolutions/"))
+; (define page-url (string->url "https://www.youtube.com/watch?v=FPYl7nIKRbA"))
 ; (define page-url (string->url "https://github.com/donnemartin/system-design-primer/blob/master/README.md")) ; Anchor tags don't render because they don't have content
 ; (define page-url (string->url "https://lithub.com/the-octopus-an-alien-among-us/")) ; Needed find-article-root to check all divs to find root
 ; (define page-url (string->url "https://books.underscore.io/shapeless-guide/shapeless-guide.html"))
@@ -705,10 +763,10 @@
 
 ; (pretty-display (extract-metadata base-doc base-url))
 ; (pretty-display (extract-media base-doc base-url))
-
+;
 ; (pretty-display (extract-metadata page-doc page-url))
 ; (pretty-display (extract-media page-doc page-url))
-
+;
 ; (with-output-to-file "ignore0.txt" #:exists 'replace
 ;   (lambda ()
 ;     (pretty-display page-doc)))
