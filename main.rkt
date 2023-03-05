@@ -502,24 +502,37 @@
        #f))
 
 (define (extract-feed-url doc base-url)
-  (define els (find-elements 'link doc))
-  (define alternative-tags
-    (filter (lambda (el)
-              (let* ([attributes (x:element-attributes el)]
-                     [rel (attr 'rel attributes)]
-                     [type (attr 'type attributes)]
-                     [href (attr 'href attributes)])
-                (and rel type href
-                     (or (string-contains? type "rss")
-                         (string-contains? type "atom")))))
-            els))
-  (define urls
-    (map (lambda (el)
-           (absolute-url base-url (attr 'href (x:element-attributes el)) #:convert #f))
-         alternative-tags))
-  (if (empty? urls)
-      #f
-      (car urls)))
+  (let/cc return
+    (define link-els (find-elements 'link doc))
+    (define alternative-link
+      (findf string?
+             (map (lambda (el)
+                    (let* ([attributes (x:element-attributes el)]
+                           [rel (attr 'rel attributes)]
+                           [type (attr 'type attributes)]
+                           [href (attr 'href attributes)])
+                      (and rel type href
+                           (or (string-contains? type "rss")
+                               (string-contains? type "atom"))
+                           href)))
+                  link-els)))
+    (when alternative-link
+      (return (absolute-url base-url alternative-link #:convert #f)))
+
+    (define anchor-els (find-elements 'a doc))
+    (define rss-link
+      (findf string?
+             (map (lambda (el)
+                    (define href (attr 'href (x:element-attributes el)))
+                    (and (string? href)
+                         (or (string-contains? href "rss")
+                             (string-contains? href "atom"))
+                         href))
+                  anchor-els)))
+    (when rss-link
+      (return (absolute-url base-url rss-link #:convert #f)))
+
+    #f))
 
 (define (render-page metadata media content)
   (:xml->string
@@ -683,7 +696,8 @@
 (define base-url (extract-base-url page-doc page-url))
 (define base-doc (download base-url))
 
-(define feed-url (extract-feed-url base-doc base-url))
+(define feed-url (or (extract-feed-url base-doc base-url)
+                     (extract-feed-url page-doc page-url)))
 
 (printf "base-url: ~a\n" (and base-url (url->string base-url)))
 (printf "feed-url: ~a\n" (and feed-url (url->string feed-url)))
