@@ -741,7 +741,8 @@
 ; (define page-url (string->url "https://martin.kleppmann.com/2021/04/14/goodbye-gpl.html")) ; Looks good
 ; (define page-url (string->url "https://twitter.com/lexi_lambda/status/1295426437583982592")) ; Not working, JS rendered
 ; (define page-url (string->url "https://blog.bytebytego.com/p/from-0-to-millions-a-guide-to-scaling-7b4")) ; Works
-(define page-url (string->url "https://medium.com/@dkeout/why-you-must-actually-understand-the-ω-and-y-combinators-c9204241da7a")) ; Link doesn't include child nodes in parsed HTML
+; (define page-url (string->url "https://medium.com/@dkeout/why-you-must-actually-understand-the-ω-and-y-combinators-c9204241da7a")) ; Link doesn't include child nodes in parsed HTML
+(define page-url (string->url "https://matt.might.net/articles/counting-hash-collisions/")) ; Embeded HTML string in a script tag is getting parsed as HTML
 ; (define page-url (string->url "https://blog.bytebytego.com/p/ep49-api-architectural-styles?utm_source=post-email-title&publication_id=817132&post_id=106350890&isFreemail=true&utm_medium=email"))
 ; (define page-url (string->url "https://matt.might.net/articles/programmers-resolutions/"))
 ; (define page-url (string->url "https://www.youtube.com/watch?v=FPYl7nIKRbA"))
